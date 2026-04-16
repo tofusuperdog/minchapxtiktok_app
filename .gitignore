@@ -1,0 +1,54 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# macOS
+.DS_Store
+
+# windows
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# local misc
+*.pem
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# coverage
+/coverage
+
+# vercel
+.vercel
+
+# generated lock for tools / temporary files
+*.tmp
+*.temp
+
+# custom files
+.mcp.json
