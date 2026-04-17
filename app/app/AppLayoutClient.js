@@ -70,94 +70,103 @@ function LayoutContent({ children }) {
     { path: "/app/profile", label: t("profile"), icon: "/profile.svg", iconActive: "/profile_selected.svg" },
   ];
 
+  const isVipPage = pathname === "/app/vip";
+  const isContactPage = pathname === "/app/contact";
+  const isTopupPage = pathname === "/app/topup";
+  const isBillPage = pathname === "/app/bill";
+
   return (
     <div className="relative flex min-h-screen bg-black">
       
       {/* Mobile Content Wrapper */}
       <div className="flex w-full flex-col sm:hidden relative pb-[70px]">
         
-        {/* Header */}
-        <header className="sticky top-0 z-40 flex h-[60px] items-center justify-between px-4 bg-black/80 backdrop-blur-md border-b border-white/10">
-          
-          {/* Logo */}
-          <div className="flex items-center h-full">
-            <img src="/minchap.svg" alt="MinChap" className="h-6 w-auto object-contain" />
-          </div>
-
-          {/* Right Header Actions */}
-          <div className="flex items-center gap-3">
+        {/* Header - Hide on VIP, Contact, Topup, and Bill pages */}
+        {!isVipPage && !isContactPage && !isTopupPage && !isBillPage && (
+          <header className="sticky top-0 z-40 flex h-[60px] items-center justify-between px-4 bg-black/80 backdrop-blur-md border-b border-white/10">
             
-            {/* Language Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button 
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-1 rounded bg-[#1A1A1A] px-2 py-1 text-xs font-semibold text-white/90 border border-white/10"
-              >
-                {language}
-                <svg className={`h-3 w-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-              </button>
-
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-20 rounded-lg bg-[#1A1A1A] shadow-lg border border-white/10 py-1 flex flex-col z-50">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => {
-                        changeLanguage(lang);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`px-4 py-2 text-sm text-left hover:bg-white/10 transition-colors ${language === lang ? 'text-white font-bold' : 'text-white/60'}`}
-                    >
-                      {lang}
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Logo */}
+            <div className="flex items-center h-full">
+              <img src="/minchap.svg" alt="MinChap" className="h-6 w-auto object-contain" />
             </div>
 
-            {/* Share Menu Button */}
-            <button 
-              onClick={() => setIsShareModalOpen(true)}
-              className="flex items-center justify-center h-7 w-9 rounded bg-[#1A1A1A] text-white/90 border border-white/10"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-            </button>
+            {/* Right Header Actions */}
+            <div className="flex items-center gap-3">
+              
+              {/* Language Dropdown */}
+              <div className="relative" ref={dropdownRef}>
+                <button 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-1 rounded bg-[#1A1A1A] px-2 py-1 text-xs font-semibold text-white/90 border border-white/10"
+                >
+                  {language}
+                  <svg className={`h-3 w-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
 
-            {/* Close Button */}
-            <Link 
-              href="/"
-              className="flex items-center justify-center p-1 text-white/90"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </Link>
-          </div>
-        </header>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-20 rounded-lg bg-[#1A1A1A] shadow-lg border border-white/10 py-1 flex flex-col z-50">
+                    {languages.map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => {
+                          changeLanguage(lang);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`px-4 py-2 text-sm text-left hover:bg-white/10 transition-colors ${language === lang ? 'text-white font-bold' : 'text-white/60'}`}
+                      >
+                        {lang}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Share Menu Button */}
+              <button 
+                onClick={() => setIsShareModalOpen(true)}
+                className="flex items-center justify-center h-7 w-9 rounded bg-[#1A1A1A] text-white/90 border border-white/10"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+              </button>
+
+              {/* Close Button */}
+              <Link 
+                href="/"
+                className="flex items-center justify-center p-1 text-white/90"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </Link>
+            </div>
+          </header>
+        )}
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col relative w-full">
           {children}
         </main>
 
-        {/* Bottom Navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[70px] bg-[#1A1A1A] border-t border-white/5 pb-5 pt-2">
-          {navItems.map((item) => {
-            const isActive = pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                href={item.path}
-                className="flex flex-1 flex-col items-center justify-center gap-1"
-              >
-                <div className="relative h-6 w-6">
-                  <img src={isActive ? item.iconActive : item.icon} alt={item.label} className="object-contain" />
-                </div>
-                <span className={`text-[10px] ${isActive ? 'text-white' : 'text-white/50'}`}>
-                  {item.label}
-                </span>
-              </Link>
-            )
-          })}
-        </nav>
+        {/* Bottom Navigation - Hide on VIP, Topup, and Bill pages */}
+        {!isVipPage && !isTopupPage && !isBillPage && (
+          <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[70px] bg-[#1A1A1A] border-t border-white/5 pb-5 pt-2">
+            {navItems.map((item) => {
+              const isActive = pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className="flex flex-1 flex-col items-center justify-center gap-1"
+                >
+                  <div className="relative h-6 w-6">
+                    <img src={isActive ? item.iconActive : item.icon} alt={item.label} className="object-contain" />
+                  </div>
+                  <span className={`text-[10px] ${isActive ? 'text-[#BF8EFF]' : 'text-white/50'}`}>
+                    {item.label}
+                  </span>
+                </Link>
+              )
+            })}
+          </nav>
+        )}
       </div>
 
       {/* Desktop Not Supported Screen (Visible on sm and up) */}
