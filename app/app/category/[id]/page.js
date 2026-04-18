@@ -182,23 +182,14 @@ export default function CategoryDetail() {
           <div className="w-8 h-8 border-2 border-[#BF8EFF] border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-x-2 gap-y-6 px-4">
+        <div className="grid grid-cols-3 gap-2.5 px-4">
           {seriesList.map((series) => (
-            <div key={series.id} className="flex flex-col gap-2 cursor-pointer active:scale-95 transition-transform">
-              <div className="aspect-[3/4] rounded-xl overflow-hidden bg-[#1A1A1A] relative shadow-lg">
-                {series.poster_url ? (
-                  <img src={series.poster_url} alt={getPrimaryTitle(series)} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white/10">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-                  </div>
-                )}
-                <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
+            <div key={series.id} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">
+              <div className="w-full aspect-[2/3] relative bg-[#222]">
+                {series.poster_url && <img src={series.poster_url} className="object-cover w-full h-full" alt={getPrimaryTitle(series)} />}
               </div>
-              <div className="flex flex-col px-0.5 mt-1">
-                <p className="text-[11px] font-semibold text-white/90 line-clamp-2 leading-tight h-[28px]">
-                  {getPrimaryTitle(series)}
-                </p>
+              <div className="p-2 py-1.5 flex items-center justify-center min-h-[36px]">
+                 <p className="text-[10px] text-white/90 text-center leading-tight line-clamp-2">{getPrimaryTitle(series)}</p>
               </div>
             </div>
           ))}

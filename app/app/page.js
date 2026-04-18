@@ -281,7 +281,7 @@ export default function AppHome() {
         <div className="flex flex-col w-full">
           <div 
             ref={scrollRef}
-            className="flex w-full overflow-x-auto snap-x snap-mandatory gap-4 px-[10%] pb-4 scroll-smooth hide-scrollbar"
+            className="flex w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory gap-4 px-[10%] pb-4 scroll-smooth hide-scrollbar"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {banners.map((item, index) => (
@@ -323,14 +323,21 @@ export default function AppHome() {
                   <div className="flex items-center mb-3 px-4">
                     <h2 className="text-[17px] font-bold text-white tracking-wide">{getCategoryTitle(sec)}</h2>
                   </div>
-                  <div className="flex overflow-x-auto gap-2 px-4 pb-4 pt-4 hide-scrollbar snap-x">
+                  <div className="flex overflow-x-auto overflow-y-hidden gap-2 px-4 pb-4 pt-4 hide-scrollbar snap-x">
                     {sec.items.map((item, index) => (
-                      <div key={item.id} className="relative flex items-end w-[130px] flex-none snap-start cursor-pointer group">
-                        <span className="absolute left-0 -bottom-3 text-[90px] font-black italic shadow-sm pointer-events-none z-0 select-none" 
-                              style={{ WebkitTextStroke: "1px rgba(255,255,255,0.7)", color: "transparent", lineHeight: "1" }}>
-                          {index + 1}
+                      <div key={item.id} className="relative flex items-end w-[155px] flex-none snap-start cursor-pointer group">
+                        <span className={`absolute left-0 -bottom-1 text-[90px] font-black shadow-sm pointer-events-none z-0 select-none ${index + 1 === 10 ? 'flex flex-col items-center' : ''}`} 
+                              style={{ WebkitTextStroke: "1.1px rgba(255,255,255,0.8)", color: "transparent", lineHeight: "0.8" }}>
+                          {index + 1 === 10 ? (
+                            <div className="flex flex-col items-center -space-y-4 h-min">
+                              <span>1</span>
+                              <span>0</span>
+                            </div>
+                          ) : (
+                            index + 1
+                          )}
                         </span>
-                        <div className="bg-[#1A1A1A] rounded-md overflow-hidden w-[95px] flex flex-col ml-7 relative z-10 shadow-lg border border-white/5 group-active:scale-95 transition-transform">
+                        <div className={`bg-[#1A1A1A] rounded-md overflow-hidden w-[115px] flex flex-col ${index + 1 === 10 ? 'ml-10' : 'ml-8'} relative z-10 shadow-lg border border-white/5 group-active:scale-95 transition-transform`}>
                           <div className="w-full aspect-[2/3] bg-[#222]">
                              {item.poster_url && <img src={item.poster_url} className="object-cover w-full h-full" alt={getTitle(item)} />}
                           </div>

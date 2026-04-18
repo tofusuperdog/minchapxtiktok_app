@@ -184,19 +184,15 @@ export default function AppSearch() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2.5">
               {searchResults.map(series => (
-                <div key={series.id} className="flex flex-col gap-1.5 cursor-pointer active:opacity-70 transition-opacity">
-                  <div className="w-full aspect-[2/3] rounded-lg overflow-hidden bg-[#1A1A1A]">
-                    {series.poster_url ? (
-                      <img src={series.poster_url} alt={getTitle(series)} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white/20">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-                      </div>
-                    )}
+                <div key={series.id} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">
+                  <div className="w-full aspect-[2/3] relative bg-[#222]">
+                    {series.poster_url && <img src={series.poster_url} alt={getTitle(series)} className="w-full h-full object-cover" />}
                   </div>
-                  <p className="text-[11px] text-white/80 leading-tight line-clamp-2">{getTitle(series)}</p>
+                  <div className="p-2 py-1.5 flex items-center justify-center min-h-[36px]">
+                    <p className="text-[10px] text-white/90 text-center leading-tight line-clamp-2">{getTitle(series)}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -211,24 +207,14 @@ export default function AppSearch() {
               <div className="w-6 h-6 border-2 border-[#BF8EFF] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {topSeries.map(({ series, totalViews }) => (
-                <div key={series.id} className="flex flex-col gap-1.5 cursor-pointer active:opacity-70 transition-opacity">
-                  {/* Poster Card */}
-                  <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-[#1A1A1A]">
-                    {series.poster_url ? (
-                      <img src={series.poster_url} alt={getTitle(series)} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white/20">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-                      </div>
-                    )}
-
+            <div className="grid grid-cols-3 gap-2.5">
+              {topSeries.map(({ series }) => (
+                <div key={series.id} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">
+                  <div className="w-full aspect-[2/3] relative bg-[#222]">
+                    {series.poster_url && <img src={series.poster_url} alt={getTitle(series)} className="w-full h-full object-cover" />}
                   </div>
-
-                  {/* Titles */}
-                  <div className="flex flex-col gap-0.5 mt-1">
-                    <p className="text-[11px] font-semibold text-white leading-tight line-clamp-2">{getTitle(series)}</p>
+                  <div className="p-2 py-1.5 flex items-center justify-center min-h-[36px]">
+                    <p className="text-[10px] text-white/90 text-center leading-tight line-clamp-2">{getTitle(series)}</p>
                   </div>
                 </div>
               ))}
