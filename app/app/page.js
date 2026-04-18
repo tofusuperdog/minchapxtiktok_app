@@ -2,6 +2,8 @@
 
 import { useLanguage } from "./LanguageContext";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function AppHome() {
   const { t, language } = useLanguage();
@@ -88,17 +90,22 @@ export default function AppHome() {
             return {
               id: cat.id,
               type: "top",
-              title: cat.name,
+              name_th: cat.name_th || cat.name,
+              name_en: cat.name_en,
+              name_jp: cat.name_jp,
+              name_cn: cat.name_cn,
               itemsData: topData
             };
           } else if (cat.name === "ซีรีส์พากย์ตามภาษา") {
+            const currentLangCode = language.toLowerCase();
             const langRes = await fetch(
-              `${SUPABASE_URL}/rest/v1/dubbed_languages?select=*&is_published=eq.true&order=sort_order`,
+              `${SUPABASE_URL}/rest/v1/dubbed_languages?select=*&is_published=eq.true&code=eq.${currentLangCode}`,
               { headers }
             );
             const langsData = await langRes.json();
             
-            const langPromises = langsData.map(async (lang) => {
+            if (langsData.length > 0) {
+              const lang = langsData[0];
               const sr = await fetch(
                 `${SUPABASE_URL}/rest/v1/series?select=id&dub_${lang.code}=eq.true&limit=30`,
                 { headers }
@@ -109,14 +116,16 @@ export default function AppHome() {
               selectedIds.forEach(id => allSeriesIdsToFetch.add(id));
               
               return {
-                id: `${cat.id}-${lang.code}`,
+                id: cat.id,
                 type: "normal",
-                title: lang.name,
+                name_th: cat.name_th || cat.name,
+                name_en: cat.name_en,
+                name_jp: cat.name_jp,
+                name_cn: cat.name_cn,
                 itemsData: selectedIds.map(id => ({ series_id: id }))
               };
-            });
-            const resolvedLangs = await Promise.all(langPromises);
-            return resolvedLangs;
+            }
+            return [];
           } else {
             let selectedIds = [];
             if (cat.series_ids && cat.series_ids.length > 0) {
@@ -127,14 +136,53 @@ export default function AppHome() {
             return {
               id: cat.id,
               type: "normal",
-              title: cat.name,
+              name_th: cat.name_th || cat.name,
+              name_en: cat.name_en,
+              name_jp: cat.name_jp,
+              name_cn: cat.name_cn,
               itemsData: selectedIds.map(id => ({ series_id: id }))
             };
           }
         });
 
         const rawSections = await Promise.all(promises);
-        const sectionsConfig = rawSections.flat();
+        
+        // Fetch Genres
+        const genreRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/genre?select=*&is_published=eq.true&order=sort_order`,
+          { headers }
+        );
+        const genres = await genreRes.json();
+        
+        const genrePromises = genres.map(async (g) => {
+          const srRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/series?select=id&genre_ids=cs.{${g.id}}&limit=50`,
+            { headers }
+          );
+          const sdata = await srRes.json();
+          if (sdata.length > 0) {
+            const shuffled = sdata.sort(() => 0.5 - Math.random());
+            const selectedIds = shuffled.slice(0, 6).map(s => s.id);
+            selectedIds.forEach(id => allSeriesIdsToFetch.add(id));
+            
+            return {
+              id: `genre_${g.id}`,
+              isGenre: true,
+              rawId: g.id,
+              type: "normal",
+              name_th: g.name_th,
+              name_en: g.name_en,
+              name_jp: g.name_jp,
+              name_cn: g.name_cn,
+              itemsData: selectedIds.map(id => ({ series_id: id }))
+            };
+          }
+          return [];
+        });
+        
+        const rawGenreSections = await Promise.all(genrePromises);
+        
+        const sectionsConfig = [...rawSections.flat(), ...rawGenreSections.flat()];
 
         const idsArr = Array.from(allSeriesIdsToFetch);
         const seriesMap = {};
@@ -163,7 +211,7 @@ export default function AppHome() {
       }
     }
     fetchSections();
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     if (!scrollRef.current || banners.length === 0) return;
@@ -207,6 +255,18 @@ export default function AppHome() {
       case "CN": return series.title_cn || series.title_th;
       default: return series.title_th || series.title_en;
     }
+  };
+
+  const getCategoryTitle = (sec) => {
+    if (sec.name_th || sec.name_en || sec.name_jp || sec.name_cn) {
+      switch (language) {
+        case "EN": return sec.name_en || sec.name_th;
+        case "JP": return sec.name_jp || sec.name_th;
+        case "CN": return sec.name_cn || sec.name_th;
+        default: return sec.name_th;
+      }
+    }
+    return sec.title || "";
   };
 
   return (
@@ -260,9 +320,8 @@ export default function AppHome() {
             if (sec.type === "top") {
               return (
                 <div key={sec.id} className="flex flex-col mt-8">
-                  <div className="flex items-center justify-between mb-3 px-4">
-                    <h2 className="text-[17px] font-bold text-white tracking-wide">{sec.title}</h2>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/50"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  <div className="flex items-center mb-3 px-4">
+                    <h2 className="text-[17px] font-bold text-white tracking-wide">{getCategoryTitle(sec)}</h2>
                   </div>
                   <div className="flex overflow-x-auto gap-2 px-4 pb-4 pt-4 hide-scrollbar snap-x">
                     {sec.items.map((item, index) => (
@@ -287,10 +346,13 @@ export default function AppHome() {
             } else {
               return (
                 <div key={sec.id} className="flex flex-col mt-8 px-4">
-                  <div className="flex items-center justify-between mb-3 cursor-pointer group">
-                    <h2 className="text-[17px] font-bold text-white tracking-wide group-active:opacity-70">{sec.title}</h2>
+                  <Link 
+                    href={sec.isGenre ? `/app/genre/${sec.rawId}` : `/app/category/${sec.id}`}
+                    className="flex items-center justify-between mb-3 cursor-pointer group"
+                  >
+                    <h2 className="text-[17px] font-bold text-white tracking-wide group-active:opacity-70">{getCategoryTitle(sec)}</h2>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/50 group-active:text-white/100"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </div>
+                  </Link>
                   <div className="grid grid-cols-3 gap-2.5">
                     {sec.items.map((item) => (
                       <div key={item.id} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">

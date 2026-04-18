@@ -74,6 +74,8 @@ function LayoutContent({ children }) {
   const isContactPage = pathname === "/app/contact";
   const isTopupPage = pathname === "/app/topup";
   const isBillPage = pathname === "/app/bill";
+  const isCategoryPage = pathname.startsWith("/app/category/");
+  const isGenrePage = pathname.startsWith("/app/genre/");
 
   return (
     <div className="relative flex min-h-screen bg-black">
@@ -82,7 +84,7 @@ function LayoutContent({ children }) {
       <div className="flex w-full flex-col sm:hidden relative pb-[70px]">
         
         {/* Header - Hide on VIP, Contact, Topup, and Bill pages */}
-        {!isVipPage && !isContactPage && !isTopupPage && !isBillPage && (
+        {!isVipPage && !isContactPage && !isTopupPage && !isBillPage && !isCategoryPage && !isGenrePage && (
           <header className="sticky top-0 z-40 flex h-[60px] items-center justify-between px-4 bg-black/80 backdrop-blur-md border-b border-white/10">
             
             {/* Logo */}
@@ -146,7 +148,7 @@ function LayoutContent({ children }) {
         </main>
 
         {/* Bottom Navigation - Hide on VIP, Topup, and Bill pages */}
-        {!isVipPage && !isTopupPage && !isBillPage && (
+        {!isVipPage && !isTopupPage && !isBillPage && !isCategoryPage && !isGenrePage && (
           <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[70px] bg-[#1A1A1A] border-t border-white/5 pb-5 pt-2">
             {navItems.map((item) => {
               const isActive = pathname === item.path;

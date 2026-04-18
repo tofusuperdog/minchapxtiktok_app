@@ -2,10 +2,37 @@
 
 import { useLanguage } from "../LanguageContext";
 import Link from "next/link";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 
 export default function AppProfile() {
   const { t } = useLanguage();
+  const [version, setVersion] = useState("1.01");
+
+  const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
+
+  const headers = {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+  };
+
+  useEffect(() => {
+    async function fetchVersion() {
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/system_versions?system_type=eq.app&select=version_number&order=release_date.desc&limit=1`,
+          { headers }
+        );
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setVersion(data[0].version_number);
+        }
+      } catch (err) {
+        console.error("Failed to fetch version:", err);
+      }
+    }
+    fetchVersion();
+  }, []);
 
   const menuItems = [
     { id: "terms", label: t("terms"), icon: "/term.svg", path: "/app/terms" },
@@ -31,7 +58,7 @@ export default function AppProfile() {
         <div className="flex flex-col gap-0.5">
           <h2 className="text-xl font-bold tracking-tight">{t("user_id")}</h2>
           <div className="text-[13px] text-white/70">uid: 200234</div>
-          <div className="text-[13px] text-white/70">{t("version")} 1.01</div>
+          <div className="text-[13px] text-white/70">{t("version")} {version}</div>
         </div>
       </div>
 
