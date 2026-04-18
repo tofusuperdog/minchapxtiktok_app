@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LanguageProvider, useLanguage } from "./LanguageContext";
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import MagicTrail from "../MagicTrail";
 
 // Simple Share Modal Component
 function ShareModal({ isOpen, onClose, t }) {
@@ -193,6 +194,7 @@ function LayoutContent({ children }) {
       {/* Modals */}
       <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} t={t} />
 
+      <MagicTrail />
     </div>
   );
 }

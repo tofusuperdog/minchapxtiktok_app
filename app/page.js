@@ -2,12 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import MagicTrail from "./MagicTrail";
 
 export default function HomePage() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDesktopModalOpen, setIsDesktopModalOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+
+  const handleDemoClick = () => {
+    // Check for mobile (simple width check)
+    if (window.innerWidth < 640) {
+      router.push("/app");
+    } else {
+      setIsDesktopModalOpen(true);
+    }
+  };
 
   const handleLogin = (e) => {
     if (e) e.preventDefault();
@@ -28,7 +39,7 @@ export default function HomePage() {
         <img
           src="/minchap.svg"
           alt="MinChap"
-          className="mb-2 w-[280px] sm:w-[450px]"
+          className="mb-2 w-[280px] sm:w-[550px]"
         />
 
         {/* Separator with Text */}
@@ -47,8 +58,8 @@ export default function HomePage() {
 
         {/* Demo Button */}
         <button
-          onClick={() => setIsOpen(true)}
-          className="mt-8 md:mt-12 rounded-full bg-white/10 px-8 py-3 text-[15px] font-medium text-white backdrop-blur-md transition-all hover:bg-white/20 hover:scale-105 active:scale-95 border border-white/20 shadow-lg"
+          onClick={handleDemoClick}
+          className="mt-8 md:mt-12 rounded-full bg-white/10 px-10 py-4 text-[16px] font-semibold text-white backdrop-blur-md transition-all hover:bg-white/20 hover:scale-105 active:scale-95 border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
         >
           ทดลองระบบ
         </button>
@@ -59,7 +70,38 @@ export default function HomePage() {
         <p>Developed by Love Drama Co.,ltd</p>
       </footer>
 
-      {/* Password Modal */}
+      {/* Desktop Guard Modal */}
+      {isDesktopModalOpen && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-6"
+          onClick={() => setIsDesktopModalOpen(false)}
+        >
+          <div 
+            className="relative w-full max-w-[450px] overflow-hidden rounded-[40px] border border-white/20 bg-[#1a1a2e]/60 backdrop-blur-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] text-center p-10 transform transition-all animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+             {/* Sparkles/Glow */}
+             <div className="absolute -top-20 -left-20 h-40 w-40 rounded-full bg-purple-500/20 blur-[60px]"></div>
+             <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-blue-500/20 blur-[60px]"></div>
+
+             <img src="/shockgirl.svg" alt="Shock!" className="w-48 h-48 mx-auto mb-6 object-contain animate-subtle-bounce" />
+             
+             <h2 className="text-2xl font-bold text-white mb-4">โอ๊ะโอ! จอใหญ่จังเลย~ 😲</h2>
+             <p className="text-[15px] font-light text-white/80 leading-relaxed mb-8">
+               เราตั้งใจออกแบบแอปนี้มาเพื่อน้อง <span className="text-[#BF8EFF] font-semibold">Mobile</span> โดยเฉพาะเลยนะค้าาา ลองย่อหน้าจอให้ผอมๆ หรือสแกนเล่นผ่านมือถือเพื่อความฟินระดับสุดนะคะ! 💕
+             </p>
+
+             <button 
+               onClick={() => setIsDesktopModalOpen(false)}
+               className="w-full rounded-2xl bg-gradient-to-r from-[#BF8EFF] to-[#a36dfc] py-4 text-white font-bold shadow-lg hover:brightness-110 active:scale-[0.98] transition-all"
+             >
+               รับทราบค่าาา~
+             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Password Modal (Retained just in case, though skipped for now) */}
       {isOpen && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-6 transition-all"
@@ -121,6 +163,24 @@ export default function HomePage() {
           </div>
         </div>
       )}
+      <MagicTrail />
+
+      <style jsx global>{`
+        @keyframes zoomIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes subtleBounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .animate-in {
+          animation: zoomIn 0.3s ease-out forwards;
+        }
+        .animate-subtle-bounce {
+          animation: subtleBounce 2s ease-in-out infinite;
+        }
+      `}</style>
     </main>
   );
 }
