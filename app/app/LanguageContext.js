@@ -59,7 +59,8 @@ export const translations = {
     sep: "ก.ย.",
     oct: "ต.ค.",
     nov: "พ.ย.",
-    dec: "ธ.ค."
+    dec: "ธ.ค.",
+    purchase_system_disabled: "ระบบการซื้อใน Minchap ปิดการใช้งานชั่วคราว"
   },
   EN: {
     home: "Home",
@@ -117,7 +118,8 @@ export const translations = {
     sep: "Sep",
     oct: "Oct",
     nov: "Nov",
-    dec: "Dec"
+    dec: "Dec",
+    purchase_system_disabled: "Minchap purchase system is temporarily disabled"
   },
   JP: {
     home: "ホーム",
@@ -175,7 +177,8 @@ export const translations = {
     sep: "9月",
     oct: "10月",
     nov: "11月",
-    dec: "12月"
+    dec: "12月",
+    purchase_system_disabled: "Minchapの購入システムは一時的に停止されています"
   },
   CN: {
     home: "首页",
@@ -233,7 +236,8 @@ export const translations = {
     sep: "9月",
     oct: "10月",
     nov: "11月",
-    dec: "12月"
+    dec: "12月",
+    purchase_system_disabled: "Minchap 购买系统暂时关闭"
   }
 };
 
