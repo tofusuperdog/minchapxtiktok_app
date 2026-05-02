@@ -73,10 +73,21 @@ function LayoutContent({ children }) {
 
   const isVipPage = pathname === "/app/vip";
   const isContactPage = pathname === "/app/contact";
+  const isPolicyPage = pathname === "/app/policy";
+  const isTermsPage = pathname === "/app/terms";
   const isTopupPage = pathname === "/app/topup";
   const isBillPage = pathname === "/app/bill";
   const isCategoryPage = pathname.startsWith("/app/category/");
   const isGenrePage = pathname.startsWith("/app/genre/");
+  const showHeader =
+    !isVipPage &&
+    !isContactPage &&
+    !isPolicyPage &&
+    !isTermsPage &&
+    !isTopupPage &&
+    !isBillPage &&
+    !isCategoryPage &&
+    !isGenrePage;
 
   return (
     <div className="relative flex min-h-screen bg-black">
@@ -84,9 +95,9 @@ function LayoutContent({ children }) {
       {/* Mobile Content Wrapper */}
       <div className="flex w-full flex-col sm:hidden relative pb-[70px]">
         
-        {/* Header - Hide on VIP, Contact, Topup, and Bill pages */}
-        {!isVipPage && !isContactPage && !isTopupPage && !isBillPage && !isCategoryPage && !isGenrePage && (
-          <header className="sticky top-0 z-40 flex h-[60px] items-center justify-between px-4 bg-black/80 backdrop-blur-md border-b border-white/10">
+        {/* Header - Hide on VIP, Contact, Policy, Topup, and Bill pages */}
+        {showHeader && (
+          <header className="fixed left-0 right-0 top-0 z-40 flex h-[60px] items-center justify-between px-4 bg-black/80 backdrop-blur-md border-b border-white/10">
             
             {/* Logo */}
             <div className="flex items-center h-full">
@@ -144,7 +155,7 @@ function LayoutContent({ children }) {
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col relative w-full">
+        <main className={`flex-1 flex flex-col relative w-full ${showHeader ? "pt-[60px]" : ""}`}>
           {children}
         </main>
 

@@ -5,17 +5,16 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 
 export default function AppProfile() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [isVipActive, setIsVipActive] = useState(true);
-  const [isEpisodesActive, setIsEpisodesActive] = useState(true);
   const [version, setVersion] = useState("1.01");
 
   const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
 
   const headers = {
-    "apikey": SUPABASE_ANON_KEY,
-    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
   };
 
   useEffect(() => {
@@ -23,11 +22,11 @@ export default function AppProfile() {
       try {
         const fetchVersion = fetch(
           `${SUPABASE_URL}/rest/v1/system_versions?system_type=eq.app&select=version_number&order=release_date.desc&limit=1`,
-          { headers }
+          { headers },
         );
         const fetchSettings = fetch(
           `${SUPABASE_URL}/rest/v1/app_settings?select=*&id=eq.1`,
-          { headers }
+          { headers },
         );
 
         const [vRes, sRes] = await Promise.all([fetchVersion, fetchSettings]);
@@ -39,7 +38,6 @@ export default function AppProfile() {
         }
         if (sData && sData.length > 0) {
           setIsVipActive(sData[0].is_vip_active !== false);
-          setIsEpisodesActive(sData[0].is_episodes_active !== false);
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
@@ -49,90 +47,147 @@ export default function AppProfile() {
   }, []);
 
   const menuItems = [
+    {
+      id: "subscription-history",
+      label: t("subscription_history"),
+      icon: "/subscription-history.svg",
+      path: "/app/bill",
+    },
+    { id: "faq", label: t("faq"), icon: "/faq.svg", path: "/app/faq" },
     { id: "terms", label: t("terms"), icon: "/term.svg", path: "/app/terms" },
-    { id: "policy", label: t("privacy"), icon: "/policy.svg", path: "/app/policy" },
-    { id: "contact", label: t("contact"), icon: "/contact.svg", path: "/app/contact" },
+    {
+      id: "policy",
+      label: t("privacy"),
+      icon: "/policy.svg",
+      path: "/app/policy",
+    },
+    {
+      id: "contact",
+      label: t("contact"),
+      icon: "/contact.svg",
+      path: "/app/contact",
+    },
   ];
 
   return (
-    <div className="flex flex-col w-full h-[calc(100vh-130px)] overflow-hidden bg-black text-white px-4 pt-6">
-
-      {/* User Info Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="flex flex-col items-center">
-          <div className="w-[85px] h-[85px] relative">
-            <img
-              src="/minchapcolor.svg"
-              alt="Profile"
-              className="w-full h-full object-contain"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-xl font-bold tracking-tight">{t("user_id")}</h2>
-          <div className="text-[13px] text-white/70">uid: 200234</div>
-          <div className="text-[13px] text-white/70">{t("version")} {version}</div>
-        </div>
-      </div>
-
-      {/* Minchap-VIP Card */}
-      {isVipActive && (
-        <div className="w-full rounded-2xl border border-[#BF8EFF]/30 bg-[#1A1A1A] p-4 flex items-center justify-between mb-4 shadow-[0_0_20px_rgba(191,142,255,0.05)]">
-          <div className="items-center flex gap-3">
-            <div className="w-14 h-14 relative">
-              <img src="/popcorn.svg" alt="Popcorn" className="w-full h-full object-contain" />
-            </div>
-            <div className="flex flex-col">
-              <h3 className="text-base font-bold text-white leading-tight">Minchap - VIP</h3>
-              <p className="text-[11px] text-white/50">{t("unlimited_watch")}</p>
+    <div className="relative flex min-h-[calc(100dvh-130px)] w-full flex-col overflow-y-auto bg-black px-5 pb-8 pt-4 text-white no-scrollbar">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_62%_7%,rgba(173,82,255,0.24),transparent_35%),radial-gradient(circle_at_50%_30%,rgba(126,31,196,0.14),transparent_45%)]" />
+      <div className="relative z-10 flex flex-col">
+        {/* User Info Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="flex w-[90px] shrink-0 flex-col items-center">
+            <div className="relative h-[80px] w-[90px] pt-5">
+              <img
+                src="/user.svg"
+                alt="Profile"
+                className="object-contain w-full h-full "
+              />
             </div>
           </div>
-          <Link href="/app/vip" className="bg-[#6000B3] hover:bg-[#7a00e6] text-white text-[12px] font-bold px-4 py-2 rounded-lg transition-colors shadow-lg">
-            {t("subscribe_now")}
-          </Link>
-        </div>
-      )}
 
-      {/* Credit Unlock Session */}
-      {isEpisodesActive && (
-        <div className="w-full rounded-2xl bg-[#1A1A1A] flex flex-col mb-8 overflow-hidden border border-white/5">
-          <div className="flex items-center justify-between p-4 border-b border-white/5">
-            <span className="text-sm font-medium text-white/90 tracking-wide">{t("unlock_credit")}</span>
-            <Link href="/app/bill" className="text-[11px] text-white/40 flex items-center gap-1 hover:text-white/60 transition-colors">
-              {t("details")} &gt;
-            </Link>
-          </div>
-
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex flex-col">
-              <div className="text-2xl font-bold text-white mb-1">0 {t("episodes_unit")}</div>
-              <div className="text-[11px] text-white/40">{t("unlockable_desc")}</div>
+          <div className="flex min-w-0 flex-col gap-1.5 pt-3">
+            <h2 className="text-[24px] font-extrabold leading-tight tracking-tight text-white">
+              {t("profile_account_title")}
+            </h2>
+            <div className="text-[15px]  leading-tight text-white/72">
+              {t("profile_user_id")}:{" "}
+              <span className="text-[#B985FF]">200234</span>
             </div>
-            <Link href="/app/topup" className="bg-[#6000B3] hover:bg-[#7a00e6] text-white text-[12px] font-bold px-5 py-2.5 rounded-lg transition-colors shadow-lg">
-              {t("add_episodes")}
-            </Link>
+            <div className="text-[15px]  leading-tight text-white/72">
+              {t("app_version")}{" "}
+              <span className="text-[#B985FF]">{version}</span>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Menu List */}
-      <div className="flex flex-col">
-        {menuItems.map((item, index) => (
-          <div key={item.id}>
-            <Link href={item.path || "#"} className="w-full flex items-center gap-4 py-4 active:bg-white/5 transition-colors text-left group">
-              <div className="w-6 h-6 flex items-center justify-center opacity-70 group-active:opacity-100">
-                <img src={item.icon} alt={item.label} className="w-full h-full object-contain" />
+        {/* Minchap-VIP Card */}
+        {isVipActive && (
+          <div className="relative mb-5 w-full overflow-hidden rounded-[18px] border border-[#C15BFF] bg-[radial-gradient(circle_at_36%_19%,rgba(235,188,255,0.16),transparent_18%),linear-gradient(115deg,#1B0A25_0%,#2F1544_48%,#16091F_100%)] px-4 py-6 shadow-[0_0_24px_rgba(178,55,255,0.26),inset_0_0_22px_rgba(199,91,255,0.13)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_19%_34%,rgba(255,255,255,0.23),transparent_2px),radial-gradient(circle_at_24%_16%,rgba(255,151,236,0.55),transparent_2px),radial-gradient(circle_at_16%_57%,rgba(255,222,130,0.34),transparent_3px)]" />
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="relative w-[72px] shrink-0">
+                <img
+                  src="/popcorn.svg"
+                  alt="Popcorn"
+                  className="h-full w-full object-contain drop-shadow-[0_14px_18px_rgba(0,0,0,0.5)]"
+                />
               </div>
-              <span className="text-[15px] font-medium text-white/90 group-active:text-white">{item.label}</span>
-            </Link>
-            {index < menuItems.length - 1 && (
-              <div className="h-[1px] w-full bg-white/5" />
-            )}
+              <div className="flex flex-col items-start flex-1 min-w-0">
+                <h3 className="mb-2 text-[24px] font-extrabold leading-none tracking-tight text-white">
+                  MinChap{" "}
+                  <span className="bg-gradient-to-b from-[#FAE8FF] via-[#B65CFF] to-[#6E14C8] bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(191,105,255,0.7)]">
+                    VIP
+                  </span>
+                </h3>
+                <p className="text-[17px] leading-tight text-white/86">
+                  {t("unlimited_watch")}
+                </p>
+                <Link
+                  href="/app/vip"
+                  className={`mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-[#B24BFF] to-[#7800D7] px-5 font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_0_20px_rgba(143,42,255,0.38)] transition-transform active:scale-[0.98] ${
+                    language === "EN"
+                      ? "max-w-[180px] text-[15px]"
+                      : "max-w-[160px] text-[17px]"
+                  }`}
+                >
+                  {t("subscribe_vip")}
+                  <svg
+                    className="w-5 h-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
+        )}
 
+        {/* Menu List */}
+        <div className="flex flex-col">
+          {menuItems.map((item, index) => (
+            <div key={item.id}>
+              <Link
+                href={item.path || "#"}
+                className="flex items-center w-full gap-5 py-4 text-left transition-colors group active:bg-white/5"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-white/[0.055] shadow-[inset_0_0_16px_rgba(255,255,255,0.04)]">
+                  <img
+                    src={item.icon}
+                    alt={item.label}
+                    className="h-[25px] w-[25px] object-contain opacity-90"
+                  />
+                </div>
+                <span className="min-w-0 flex-1 text-[18px]  text-white/92 group-active:text-white">
+                  {item.label}
+                </span>
+                <svg
+                  className="w-6 h-6 shrink-0 text-white/60 group-active:text-white/80"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </Link>
+
+              {index < menuItems.length - 1 && (
+                <div className="h-[1px] bg-[#2A2A2A]" />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

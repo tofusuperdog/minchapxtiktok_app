@@ -97,10 +97,10 @@ export default function GenreDetail() {
   };
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-black text-white pb-10">
+    <div className="flex flex-col w-full min-h-screen bg-black text-white pb-10 pt-[60px]">
       
       {/* Header matching bill page */}
-      <header className="sticky top-0 z-50 flex h-[60px] items-center justify-between px-4 bg-black/80 backdrop-blur-md">
+      <header className="fixed left-0 right-0 top-0 z-50 flex h-[60px] items-center justify-between px-4 bg-black/80 backdrop-blur-md">
         <button onClick={() => router.back()} className="p-1 text-white/70 hover:text-white">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>

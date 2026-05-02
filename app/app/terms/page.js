@@ -1,7 +1,8 @@
 "use client";
 
 import { useLanguage } from "../LanguageContext";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const termsContent = {
   TH: {
@@ -170,39 +171,288 @@ const termsContent = {
   }
 };
 
+const termsHeaderContent = {
+  TH: {
+    title: "ข้อกำหนดการใช้งาน",
+    updated: "เริ่มมีผลบังคับใช้: 19 กันยายน 2567",
+    intro:
+      "ข้อกำหนดนี้อธิบายเงื่อนไขการใช้งาน MinChap เพื่อให้ทุกคนใช้งานแอปได้อย่างปลอดภัยและเป็นธรรม",
+    summaryTitle: "สรุปแบบเข้าใจง่าย",
+    bullets: [
+      "การใช้งานแอปถือว่าคุณยอมรับข้อกำหนดนี้",
+      "โปรดใช้บัญชีและข้อมูลของคุณอย่างปลอดภัย",
+      "ห้ามคัดลอกหรือดัดแปลงเนื้อหาโดยไม่ได้รับอนุญาต",
+      "เราอาจปรับปรุงข้อกำหนดเมื่อจำเป็น",
+    ],
+  },
+  EN: {
+    title: "Terms of Use",
+    updated: "Effective date: September 19, 2024",
+    intro:
+      "These terms explain how MinChap should be used so everyone can enjoy the app safely and fairly.",
+    summaryTitle: "Simple Summary",
+    bullets: [
+      "Using the app means you accept these terms",
+      "Keep your account and access information secure",
+      "Do not copy or modify content without permission",
+      "We may update these terms when needed",
+    ],
+  },
+  JP: {
+    title: "利用規約",
+    updated: "発効日: 2024年9月19日",
+    intro:
+      "この規約は、MinChapを安全かつ公正に利用するための条件を説明するものです。",
+    summaryTitle: "かんたん概要",
+    bullets: [
+      "アプリの利用は規約への同意を意味します",
+      "アカウント情報を安全に管理してください",
+      "許可なくコンテンツを複製・変更しないでください",
+      "必要に応じて規約を更新する場合があります",
+    ],
+  },
+  CN: {
+    title: "使用条款",
+    updated: "生效日期: 2024年9月19日",
+    intro:
+      "这些条款说明 MinChap 的使用规则，帮助大家安全、公平地使用应用。",
+    summaryTitle: "简明摘要",
+    bullets: [
+      "使用应用即表示您接受这些条款",
+      "请妥善保护您的账户和访问信息",
+      "未经许可不得复制或修改内容",
+      "我们可能在需要时更新这些条款",
+    ],
+  },
+};
+
 export default function AppTerms() {
-  const { t, language } = useLanguage();
+  const { language, changeLanguage } = useLanguage();
+  const router = useRouter();
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const langDropdownRef = useRef(null);
+  const languages = ["TH", "EN", "JP", "CN"];
   const content = termsContent[language] || termsContent.TH;
+  const headerContent = termsHeaderContent[language] || termsHeaderContent.TH;
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        langDropdownRef.current &&
+        !langDropdownRef.current.contains(event.target)
+      ) {
+        setIsLangOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-black text-white px-6 pt-6 pb-8 overflow-y-auto no-scrollbar">
-      
-      <div className="mb-8">
-        <Link href="/app/profile" className="mb-6 inline-block text-sm text-[#BF8EFF] hover:text-white transition-colors flex items-center gap-1">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
-          {t("profile")}
-        </Link>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">{content.title}</h1>
-        <p className="text-xs text-white/40 italic">{content.effectiveDate}</p>
-      </div>
+    <div className="flex min-h-screen w-full flex-col overflow-y-auto bg-black pt-[60px] text-white no-scrollbar">
+      <header className="fixed left-0 right-0 top-0 z-50 flex h-[60px] items-center justify-between bg-black/80 px-4 backdrop-blur-md">
+        <button onClick={() => router.back()} className="p-1">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
 
-      <div className="space-y-8 text-white/70 leading-relaxed font-light text-sm font-sans">
-        <p>{content.intro}</p>
+        <div className="flex items-center">
+          <img
+            src="/minchap.svg"
+            alt="MinChap"
+            className="object-contain w-auto h-6"
+          />
+        </div>
 
-        {content.sections.map((section, idx) => (
-          <section key={idx}>
-            <h2 className="text-lg font-semibold text-white mb-2 tracking-wide">{section.title}</h2>
-            {section.content && <p>{section.content}</p>}
-            {section.list && (
-              <ul className="list-disc pl-5 space-y-2 font-light">
-                {section.list.map((item, lIdx) => (
-                  <li key={lIdx}>{item}</li>
+        <div className="flex items-center gap-2">
+          <div className="relative" ref={langDropdownRef}>
+            <button
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              className="flex items-center gap-1 rounded border border-white/10 bg-[#1A1A1A] px-2 py-1 text-xs font-semibold uppercase text-white/90"
+            >
+              {language}
+              <svg
+                className={`h-3 w-3 transition-transform ${isLangOpen ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {isLangOpen && (
+              <div className="absolute right-0 z-50 mt-2 flex w-20 flex-col rounded-lg border border-white/10 bg-[#1A1A1A] py-1 shadow-lg">
+                {languages.map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => {
+                      changeLanguage(lang);
+                      setIsLangOpen(false);
+                    }}
+                    className={`px-4 py-2 text-left text-sm transition-colors hover:bg-white/10 ${language === lang ? "font-bold text-white" : "text-white/60"}`}
+                  >
+                    {lang}
+                  </button>
                 ))}
-              </ul>
+              </div>
             )}
+          </div>
+
+          <button className="flex h-8 w-8 items-center justify-center rounded text-white/90 opacity-60">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="19" cy="12" r="1"></circle>
+              <circle cx="5" cy="12" r="1"></circle>
+            </svg>
+          </button>
+          <button onClick={() => router.push("/app")} className="p-1">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main className="relative overflow-hidden px-4 pb-8 pt-4">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[260px] bg-[radial-gradient(circle_at_50%_0%,rgba(167,70,255,0.24),transparent_54%)]" />
+
+        <div className="relative z-10 mx-auto flex w-full max-w-[390px] flex-col">
+          <section className="mb-5">
+            <div className="mb-5 flex items-start gap-4">
+              <div className="relative h-[43px] w-[43px] shrink-0">
+                <img
+                  src="/terms-shield.svg"
+                  alt=""
+                  className="h-full w-full object-contain drop-shadow-[0_0_26px_rgba(166,72,255,0.72)]"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1 pt-1">
+                <h1 className="text-[27px] font-extrabold leading-[1.12] tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.34)]">
+                  {headerContent.title}
+                </h1>
+                <div className="mt-3 flex items-center gap-2 text-[13px] font-semibold leading-tight text-[#A9A3B4]">
+                  <svg
+                    className="h-4 w-4 shrink-0 text-[#B96AFF]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <path d="M16 2v4" />
+                    <path d="M8 2v4" />
+                    <path d="M3 10h18" />
+                  </svg>
+                  <span>{headerContent.updated}</span>
+                </div>
+                <p className="mt-4 text-[14px] font-medium leading-relaxed text-[#B8B2C1]">
+                  {headerContent.intro}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-[18px] border border-[#9144DD] bg-[linear-gradient(135deg,rgba(33,20,49,0.92),rgba(11,8,20,0.98))] p-5 shadow-[0_0_22px_rgba(146,68,221,0.20)]">
+              <div>
+                <h2 className="mb-3 text-[23px] font-extrabold leading-tight text-white">
+                  {headerContent.summaryTitle}
+                </h2>
+                <div className="space-y-2.5">
+                  {headerContent.bullets.map((item) => (
+                    <div key={item} className="flex items-center gap-3">
+                      <span className="flex h-[21px] w-[21px] shrink-0 items-center justify-center rounded-full bg-[#A855F7] text-[13px] font-black leading-none text-[#1B1029]">
+                        ✓
+                      </span>
+                      <p className="text-[13px] font-medium leading-snug text-[#D4CEDD]">
+                        {item}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </section>
-        ))}
-      </div>
+
+          <div className="space-y-3">
+            {content.sections.map((section, idx) => (
+              <section
+                key={section.title}
+                className="rounded-[16px] border border-[#24212D] bg-[linear-gradient(135deg,rgba(31,24,42,0.90),rgba(9,8,16,0.96))] p-4 shadow-[inset_0_0_24px_rgba(255,255,255,0.03)]"
+              >
+                <div className="flex gap-4">
+                  <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full border border-[#8E37E4]/60 bg-[#1B1029] text-[15px] font-extrabold text-[#C37BFF]">
+                    {String(idx + 1).padStart(2, "0")}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h2 className="mb-2 text-[18px] font-extrabold leading-tight text-white">
+                      {section.title.replace(/^\d+\.\s*/, "")}
+                    </h2>
+                    {section.content && (
+                      <p className="text-[13px] font-medium leading-relaxed text-[#A9A3B4]">
+                        {section.content}
+                      </p>
+                    )}
+                    {section.list && (
+                      <ul className="mt-3 space-y-1.5">
+                        {section.list.slice(0, 3).map((item) => (
+                          <li
+                            key={item}
+                            className="flex gap-2 text-[13px] font-medium leading-relaxed text-[#A9A3B4]"
+                          >
+                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B96AFF]" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

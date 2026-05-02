@@ -30,6 +30,8 @@ export default function TopupPage() {
   const [vipPackages, setVipPackages] = useState([]);
   const [settings, setSettings] = useState({ is_episodes_active: true, is_vip_active: true });
   const [loading, setLoading] = useState(true);
+  const [selectedEpisodePackage, setSelectedEpisodePackage] = useState(null);
+  const [selectedVipPackage, setSelectedVipPackage] = useState(null);
 
   const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
@@ -92,6 +94,22 @@ export default function TopupPage() {
     }
   };
 
+  const getThaiVipPackageTitle = (pkg) => {
+    const type = pkg.type.toLowerCase();
+    if (type.includes("à¸ªà¸±à¸›à¸”à¸²à¸«à¹Œ") || type.includes("weekly") || Number(pkg.price_thb) === 129) {
+      return "รายสัปดาห์ - VIP";
+    }
+    if (type.includes("à¹€à¸”à¸·à¸­à¸™") || type.includes("monthly") || Number(pkg.price_thb) === 359) {
+      return "รายเดือน - VIP";
+    }
+    return pkg.type;
+  };
+
+  const getVipPaymentNotice = (pkg) => {
+    const title = getThaiVipPackageTitle(pkg);
+    return `แพ็กเกจ ${title} ราคา ${pkg.price_thb} บาท`;
+  };
+
   const replaceUnlockText = (n) => {
     // If language doesn't have format string, provide fallback
     const templ = t("unlock_text");
@@ -103,11 +121,13 @@ export default function TopupPage() {
     return templ.includes("{p}") ? templ.replace("{p}", p) : `ลด ${p}%`;
   };
 
+  const getEpisodePurchaseNotice = (pkg) => `ราคา ${pkg.price} bean`;
+
   return (
-    <div className="flex flex-col w-full min-h-screen bg-[#07050A] text-white pb-10">
+    <div className="flex flex-col w-full min-h-screen bg-[#07050A] text-white pb-10 pt-[60px]">
       
       {/* Header matching VIP page style */}
-      <header className="sticky top-0 z-50 flex h-[60px] items-center justify-between px-4 bg-black/80 backdrop-blur-md">
+      <header className="fixed left-0 right-0 top-0 z-50 flex h-[60px] items-center justify-between px-4 bg-black/80 backdrop-blur-md">
         <button onClick={() => router.back()} className="p-1">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>
@@ -185,8 +205,10 @@ export default function TopupPage() {
 
                   <div className="grid grid-cols-2 gap-3 pb-2">
                     {episodes.map(epi => (
-                      <div 
+                      <button
+                        type="button"
                         key={epi.id} 
+                        onClick={() => setSelectedEpisodePackage(epi)}
                         className={`relative flex flex-col justify-center rounded-xl p-4 border transition-transform active:scale-95 cursor-pointer ${
                           epi.badge_color ? "bg-[#4A00A0] border-[#6000B3]" : "bg-transparent border-[#4A2574]"
                         }`}
@@ -203,7 +225,7 @@ export default function TopupPage() {
                         <div className={`text-[12px] font-light ${epi.badge_color ? "text-white/90" : "text-white/60"}`}>
                           {replaceUnlockText(epi.unlock_episodes)}
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -225,8 +247,10 @@ export default function TopupPage() {
                       const title = getVipPackageTitle(pkg);
                       
                       return (
-                        <div 
+                        <button
+                          type="button"
                           key={pkg.id}
+                          onClick={() => setSelectedVipPackage(pkg)}
                           className={`relative w-full rounded-xl p-4 px-5 flex justify-between items-center transition-all active:scale-95 cursor-pointer border ${
                             pkg.is_recommended 
                               ? "bg-[#4A00A0] border-[#6000B3] shadow-[0_5px_20px_rgba(74,0,160,0.3)]" 
@@ -260,7 +284,7 @@ export default function TopupPage() {
                             <span>{price}</span>
                             <span className="text-[14px]">{unit}</span>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -284,6 +308,58 @@ export default function TopupPage() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {selectedEpisodePackage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm">
+          <div className="relative w-full max-w-[360px] overflow-hidden rounded-2xl border border-[#BF8EFF]/25 bg-[#12091D] shadow-[0_24px_80px_rgba(0,0,0,0.65)]">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#E91E63] via-[#BF8EFF] to-[#6000B3]" />
+            <div className="p-6 pt-7 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#6000B3]/30 ring-1 ring-[#BF8EFF]/30">
+                <img src="/episodeicon.svg" alt="Episode" className="h-8 w-8 object-contain drop-shadow" />
+              </div>
+              <h2 className="mb-3 text-2xl font-bold text-white">เพิ่มตอน</h2>
+              <div className="space-y-2 text-[15px] leading-relaxed text-white/78">
+                <p>ระบบนี้อยู่ในช่วงพัฒนา</p>
+                <p className="text-[#BF8EFF]">Flow : episode_purchase_flow</p>
+                <p>{getEpisodePurchaseNotice(selectedEpisodePackage)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedEpisodePackage(null)}
+                className="mt-6 h-12 w-full rounded-xl bg-gradient-to-r from-[#6000B3] to-[#8A2BE2] text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(96,0,179,0.35)] transition-transform active:scale-[0.98]"
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedVipPackage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm">
+          <div className="relative w-full max-w-[360px] overflow-hidden rounded-2xl border border-[#BF8EFF]/25 bg-[#12091D] shadow-[0_24px_80px_rgba(0,0,0,0.65)]">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#E91E63] via-[#BF8EFF] to-[#6000B3]" />
+            <div className="p-6 pt-7 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#6000B3]/30 ring-1 ring-[#BF8EFF]/30">
+                <img src="/popcorn.svg" alt="VIP" className="h-8 w-8 object-contain drop-shadow" />
+              </div>
+              <h2 className="mb-3 text-2xl font-bold text-white">สมัคร VIP</h2>
+              <div className="space-y-2 text-[15px] leading-relaxed text-white/78">
+                <p>ระบบนี้อยู่ในช่วงพัฒนา</p>
+                <p className="text-[#BF8EFF]">Flow : vip_payment_flow</p>
+                <p>{getVipPaymentNotice(selectedVipPackage)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedVipPackage(null)}
+                className="mt-6 h-12 w-full rounded-xl bg-gradient-to-r from-[#6000B3] to-[#8A2BE2] text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(96,0,179,0.35)] transition-transform active:scale-[0.98]"
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
