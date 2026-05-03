@@ -80,6 +80,15 @@ function LayoutContent({ children }) {
   const isBillPage = pathname === "/app/bill";
   const isCategoryPage = pathname.startsWith("/app/category/");
   const isGenrePage = pathname.startsWith("/app/genre/");
+  const profileSectionPaths = [
+    "/app/profile",
+    "/app/bill",
+    "/app/faq",
+    "/app/terms",
+    "/app/policy",
+    "/app/contact",
+  ];
+  const isProfileSectionPage = profileSectionPaths.includes(pathname);
   const showHeader =
     !isVipPage &&
     !isContactPage &&
@@ -161,11 +170,13 @@ function LayoutContent({ children }) {
           {children}
         </main>
 
-        {/* Bottom Navigation - Hide on VIP, Topup, and Bill pages */}
-        {!isVipPage && !isTopupPage && !isBillPage && !isCategoryPage && !isGenrePage && (
+        {/* Bottom Navigation - Hide on VIP, Topup, category, and genre pages */}
+        {!isVipPage && !isTopupPage && !isCategoryPage && !isGenrePage && (
           <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[70px] bg-[#1A1A1A] border-t border-white/5 pb-5 pt-2">
             {navItems.map((item) => {
-              const isActive = pathname === item.path;
+              const isActive =
+                pathname === item.path ||
+                (item.path === "/app/profile" && isProfileSectionPage);
               return (
                 <Link
                   key={item.path}

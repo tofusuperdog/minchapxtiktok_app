@@ -534,7 +534,7 @@ export default function AppPolicy() {
                           <rect x="3" y="5" width="18" height="14" rx="2" />
                           <path d="m3 7 9 6 9-6" />
                         </svg>
-                        <span>support@minchap.app</span>
+                        <span>minchapofficial@gmail.com</span>
                       </div>
                     </div>
                   </div>
