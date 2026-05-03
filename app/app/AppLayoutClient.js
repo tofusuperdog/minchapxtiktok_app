@@ -75,6 +75,7 @@ function LayoutContent({ children }) {
   const isContactPage = pathname === "/app/contact";
   const isPolicyPage = pathname === "/app/policy";
   const isTermsPage = pathname === "/app/terms";
+  const isFaqPage = pathname === "/app/faq";
   const isTopupPage = pathname === "/app/topup";
   const isBillPage = pathname === "/app/bill";
   const isCategoryPage = pathname.startsWith("/app/category/");
@@ -84,6 +85,7 @@ function LayoutContent({ children }) {
     !isContactPage &&
     !isPolicyPage &&
     !isTermsPage &&
+    !isFaqPage &&
     !isTopupPage &&
     !isBillPage &&
     !isCategoryPage &&
