@@ -38,6 +38,25 @@ const normalizeSubtitle = (sub, idx) => ({
   default: Boolean(sub.default || sub.isDefault) || idx === 0,
 });
 
+const disabledAdaptiveBitrateConfig = {
+  enable: false,
+  abr: false,
+  showRealDefinition: false,
+};
+
+const isKnownVePlayerDevWarning = (value) => {
+  const message =
+    typeof value === "string"
+      ? value
+      : value?.message || value?.stack || String(value || "");
+
+  return (
+    message.includes("getPrivateDrmInfo is not a function") ||
+    message.includes("Cannot read properties of undefined (reading 'abr')") ||
+    message.includes('Cannot read properties of undefined (reading "abr")')
+  );
+};
+
 function getLabels(language) {
   switch (language) {
     case "EN":
@@ -144,6 +163,46 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
     if (!containerRef.current || !vid || !playAuthToken) return;
 
     let cancelled = false;
+    let restoreConsoleError = null;
+    let removeDevErrorListeners = null;
+
+    if (process.env.NODE_ENV === "development") {
+      const originalConsoleError = console.error;
+
+      const patchedConsoleError = (...args) => {
+        if (args.some(isKnownVePlayerDevWarning)) return;
+
+        originalConsoleError(...args);
+      };
+
+      console.error = patchedConsoleError;
+
+      restoreConsoleError = () => {
+        if (console.error !== patchedConsoleError) return;
+        console.error = originalConsoleError;
+      };
+
+      const handleError = (event) => {
+        if (
+          isKnownVePlayerDevWarning(event.message) ||
+          isKnownVePlayerDevWarning(event.error)
+        ) {
+          event.preventDefault();
+        }
+      };
+      const handleUnhandledRejection = (event) => {
+        if (isKnownVePlayerDevWarning(event.reason)) {
+          event.preventDefault();
+        }
+      };
+
+      window.addEventListener("error", handleError);
+      window.addEventListener("unhandledrejection", handleUnhandledRejection);
+      removeDevErrorListeners = () => {
+        window.removeEventListener("error", handleError);
+        window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+      };
+    }
 
     async function initPlayer() {
       try {
@@ -190,9 +249,25 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
           width: "100%",
           height: "100%",
           license: BYTEPLUS_LICENSE,
-          vodLogOpts: {
-            line_app_id: 1006938,
-            line_user_id: `app-${Date.now()}`,
+          disableVodLogOptsCheck: true,
+          autoBitrateOpts: disabledAdaptiveBitrateConfig,
+          adaptRange: {
+            enable: false,
+          },
+          DASHPlugin: {
+            abr: false,
+            autoBitrateOpts: disabledAdaptiveBitrateConfig,
+            adaptRange: {
+              enable: false,
+            },
+          },
+          HLSPlugin: {
+            abr: false,
+            autoBitrateOpts: disabledAdaptiveBitrateConfig,
+          },
+          Mp4EncryptPlayer: {
+            abr: false,
+            autoBitrateOpts: disabledAdaptiveBitrateConfig,
           },
           autoplay: true,
           enableMenu: true,
@@ -231,6 +306,8 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
       }
 
       subtitlePluginRef.current = null;
+      removeDevErrorListeners?.();
+      restoreConsoleError?.();
     };
   }, [vid, playAuthToken, playDomain, subtitles]);
 
