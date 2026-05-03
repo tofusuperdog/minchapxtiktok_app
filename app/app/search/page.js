@@ -2,6 +2,7 @@
 
 import { useLanguage } from "../LanguageContext";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
@@ -20,6 +21,7 @@ function formatViews(num) {
 
 export default function AppSearch() {
   const { t, language } = useLanguage();
+  const router = useRouter();
 
   const [query, setQuery] = useState("");
   const [topSeries, setTopSeries] = useState([]);
@@ -124,15 +126,19 @@ export default function AppSearch() {
     language === "JP" ? "シリーズを検索" :
     language === "CN" ? "搜索剧集" : "ค้นหาชื่อซีรีส์";
 
-  const topSearchedLabel = language === "EN" ? "Most Searched Series" :
-    language === "JP" ? "最も検索されているシリーズ" :
-    language === "CN" ? "搜索最多的剧集" : "ซีรีส์ที่ถูกค้นหามากที่สุด";
+  const topSearchedLabel = language === "EN" ? "Popular Searches" :
+    language === "JP" ? "人気の検索" :
+    language === "CN" ? "热门搜索" : "ค้นหายอดนิยม";
 
-  const searchResultLabel = language === "EN" ? "Search Results" :
-    language === "JP" ? "検索結果" :
-    language === "CN" ? "搜索结果" : "ผลการค้นหา";
+  const searchResultLabel = language === "EN" ? `Search Results ${searchResults.length} items` :
+    language === "JP" ? `検索結果 ${searchResults.length}件` :
+    language === "CN" ? `搜索结果 ${searchResults.length}项` : `ผลการค้นหา ${searchResults.length} รายการ`;
 
   const isSearching = query.trim().length > 0;
+
+  const openPlayer = (seriesId) => {
+    if (seriesId) router.push(`/app/watch/${seriesId}`);
+  };
 
   return (
     <div className="flex flex-col w-full min-h-full bg-black text-white px-4 pt-4 pb-6">
@@ -150,7 +156,7 @@ export default function AppSearch() {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder={searchLabel}
-          className="w-full h-11 rounded-full bg-[#1A1A1A] border border-white/10 pl-10 pr-10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#BF8EFF]/50 transition-colors"
+          className="w-full h-11 rounded-full bg-[#1A1A1A] border border-[#BF8EFF]/55 pl-10 pr-10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#BF8EFF] transition-colors"
         />
         {query.length > 0 && (
           <button
@@ -186,7 +192,7 @@ export default function AppSearch() {
           ) : (
             <div className="grid grid-cols-3 gap-2.5">
               {searchResults.map(series => (
-                <div key={series.id} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">
+                <div key={series.id} onClick={() => openPlayer(series.id)} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">
                   <div className="w-full aspect-[2/3] relative bg-[#222]">
                     {series.poster_url && <img src={series.poster_url} alt={getTitle(series)} className="w-full h-full object-cover" />}
                   </div>
@@ -209,7 +215,7 @@ export default function AppSearch() {
           ) : (
             <div className="grid grid-cols-3 gap-2.5">
               {topSeries.map(({ series }) => (
-                <div key={series.id} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">
+                <div key={series.id} onClick={() => openPlayer(series.id)} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">
                   <div className="w-full aspect-[2/3] relative bg-[#222]">
                     {series.poster_url && <img src={series.poster_url} alt={getTitle(series)} className="w-full h-full object-cover" />}
                   </div>

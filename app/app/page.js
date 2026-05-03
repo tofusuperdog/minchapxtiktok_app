@@ -7,6 +7,7 @@ import Link from "next/link";
 
 export default function AppHome() {
   const { t, language } = useLanguage();
+  const router = useRouter();
 
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -269,6 +270,14 @@ export default function AppHome() {
     return sec.title || "";
   };
 
+  const playLabel = language === "EN" ? "Play" :
+    language === "JP" ? "再生" :
+    language === "CN" ? "播放" : "เล่น";
+
+  const openPlayer = (seriesId) => {
+    if (seriesId) router.push(`/app/watch/${seriesId}`);
+  };
+
   return (
     <div className="flex flex-col w-full min-h-full bg-black text-white pt-6 pb-20">
       
@@ -288,6 +297,7 @@ export default function AppHome() {
               <div 
                 key={item.id} 
                 data-index={index}
+                onClick={() => openPlayer(item.series.id)}
                 className="relative snap-center flex-shrink-0 w-full aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer"
               >
                 {item.series.poster_url ? (
@@ -295,8 +305,27 @@ export default function AppHome() {
                 ) : (
                   <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center"><span className="text-white/20">No Image</span></div>
                 )}
-                <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none flex items-end justify-center pb-4 px-4 text-center">
-                   <h2 className="text-[16px] font-medium text-white/90 drop-shadow-md line-clamp-1">{getTitle(item.series)}</h2>
+                <div className="absolute bottom-0 left-0 right-0 flex h-1/3 flex-col items-center justify-end bg-gradient-to-t from-black/90 via-black/62 to-transparent px-4 pb-4 text-center">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openPlayer(item.series.id);
+                    }}
+                    className="mb-2 inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#C27AFF] to-[#7B1ED6] px-5 text-[14px] font-extrabold text-white shadow-[0_8px_22px_rgba(123,30,214,0.45),inset_0_1px_0_rgba(255,255,255,0.28)] transition-transform active:scale-95"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M8 5v14l11-7L8 5Z" />
+                    </svg>
+                    {playLabel}
+                  </button>
+                  <h2 className="text-[16px] font-medium text-white/90 drop-shadow-md line-clamp-1">{getTitle(item.series)}</h2>
                 </div>
               </div>
             ))}
@@ -325,7 +354,7 @@ export default function AppHome() {
                   </div>
                   <div className="flex overflow-x-auto overflow-y-hidden gap-2 px-4 pb-4 pt-4 hide-scrollbar snap-x">
                     {sec.items.map((item, index) => (
-                      <div key={item.id} className="relative flex items-end w-[155px] flex-none snap-start cursor-pointer group">
+                      <div key={item.id} onClick={() => openPlayer(item.id)} className="relative flex items-end w-[155px] flex-none snap-start cursor-pointer group">
                         <span className={`absolute left-0 -bottom-1 text-[90px] font-black shadow-sm pointer-events-none z-0 select-none ${index + 1 === 10 ? 'flex flex-col items-center' : ''}`} 
                               style={{ WebkitTextStroke: "1.1px rgba(255,255,255,0.8)", color: "transparent", lineHeight: "0.8" }}>
                           {index + 1 === 10 ? (
@@ -362,7 +391,7 @@ export default function AppHome() {
                   </Link>
                   <div className="grid grid-cols-3 gap-2.5">
                     {sec.items.map((item) => (
-                      <div key={item.id} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">
+                      <div key={item.id} onClick={() => openPlayer(item.id)} className="bg-[#1A1A1A] rounded-md overflow-hidden flex flex-col shadow-lg border border-white/5 cursor-pointer active:scale-95 transition-transform">
                         <div className="w-full aspect-[2/3] relative bg-[#222]">
                           {item.poster_url && <img src={item.poster_url} className="object-cover w-full h-full" alt={getTitle(item)} />}
                         </div>

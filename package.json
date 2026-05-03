@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@byteplus/vcloud-sdk-nodejs": "^1.0.7",
+    "@byteplus/veplayer": "^1.16.0",
     "next": "16.2.3",
     "react": "19.1.0",
     "react-dom": "19.1.0"

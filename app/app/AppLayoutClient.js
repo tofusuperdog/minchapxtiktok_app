@@ -78,6 +78,7 @@ function LayoutContent({ children }) {
   const isFaqPage = pathname === "/app/faq";
   const isTopupPage = pathname === "/app/topup";
   const isBillPage = pathname === "/app/bill";
+  const isWatchPage = pathname.startsWith("/app/watch/");
   const isCategoryPage = pathname.startsWith("/app/category/");
   const isGenrePage = pathname.startsWith("/app/genre/");
   const profileSectionPaths = [
@@ -97,6 +98,7 @@ function LayoutContent({ children }) {
     !isFaqPage &&
     !isTopupPage &&
     !isBillPage &&
+    !isWatchPage &&
     !isCategoryPage &&
     !isGenrePage;
 
@@ -171,7 +173,7 @@ function LayoutContent({ children }) {
         </main>
 
         {/* Bottom Navigation - Hide on VIP, Topup, category, and genre pages */}
-        {!isVipPage && !isTopupPage && !isCategoryPage && !isGenrePage && (
+        {!isVipPage && !isTopupPage && !isWatchPage && !isCategoryPage && !isGenrePage && (
           <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[70px] bg-[#1A1A1A] border-t border-white/5 pb-5 pt-2">
             {navItems.map((item) => {
               const isActive =

@@ -1,4 +1,5 @@
 import { IBM_Plex_Sans_Thai } from "next/font/google";
+import "@byteplus/veplayer/index.min.css";
 import "./globals.css";
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
