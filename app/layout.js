@@ -43,11 +43,24 @@ export default function RootLayout({ children }) {
 
                 window.__MINCHAP_IS_KNOWN_VEPLAYER_WARNING__ = isKnownVePlayerWarning;
 
+                function isKnownVePlayerWarningArgs(args) {
+                  var values = Array.prototype.slice.call(args || []);
+                  var combined = values
+                    .map(function (value) {
+                      if (typeof value === "string") return value;
+                      if (value && typeof value === "object") {
+                        return value.message || value.stack || "";
+                      }
+                      return String(value || "");
+                    })
+                    .join(" ");
+
+                  return values.some(isKnownVePlayerWarning) || isKnownVePlayerWarning(combined);
+                }
+
                 var originalConsoleError = console.error;
                 console.error = function () {
-                  for (var index = 0; index < arguments.length; index += 1) {
-                    if (isKnownVePlayerWarning(arguments[index])) return;
-                  }
+                  if (isKnownVePlayerWarningArgs(arguments)) return;
                   return originalConsoleError.apply(console, arguments);
                 };
 

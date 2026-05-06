@@ -36,3 +36,11 @@ body {
 .veplayer-raised-subtitle xg-text-track.xg-text-track {
   bottom: 25%;
 }
+
+.veplayer-raised-subtitle .xgplayer-playbackrate,
+.veplayer-raised-subtitle .xgplayer-mobile-playBackRate,
+.veplayer-raised-subtitle .xgplayer-fullscreen,
+.veplayer-raised-subtitle .xgplayer-vttsub,
+.veplayer-raised-subtitle .xgplayer-aisub {
+  display: none !important;
+}

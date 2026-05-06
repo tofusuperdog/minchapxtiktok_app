@@ -1,6 +1,13 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { useLanguage } from "../../LanguageContext";
 import { useParams, useRouter } from "next/navigation";
 
@@ -38,11 +45,164 @@ const normalizeSubtitle = (sub, idx) => ({
   default: Boolean(sub.default || sub.isDefault) || idx === 0,
 });
 
+const normalizeSubtitleKey = (value) => {
+  const key = String(value || "")
+    .trim()
+    .toLowerCase();
+  const aliases = {
+    chinese: "zh",
+    cn: "zh",
+    thai: "th",
+    english: "en",
+    japanese: "ja",
+    jp: "ja",
+  };
+
+  return aliases[key] || key;
+};
+
+const getSubtitleMatchKeys = (subtitle) => {
+  if (!subtitle) return [];
+
+  return [
+    subtitle.id,
+    subtitle.language,
+    subtitle.lang,
+    subtitle.text,
+    subtitle.name,
+    subtitle.title,
+    subtitle.src,
+    subtitle.url,
+  ]
+    .filter(Boolean)
+    .map(normalizeSubtitleKey);
+};
+
+const subtitlesMatch = (left, right) => {
+  const leftKeys = getSubtitleMatchKeys(left);
+  const rightKeys = getSubtitleMatchKeys(right);
+
+  return leftKeys.some((key) => rightKeys.includes(key));
+};
+
+const SUBTITLE_LANGUAGE_ORDER = ["th", "en", "ja", "zh"];
+
+const getOrderedSubtitleOptions = (subtitles) =>
+  SUBTITLE_LANGUAGE_ORDER.map((languageKey) =>
+    subtitles.find((subtitle) =>
+      getSubtitleMatchKeys(subtitle).includes(languageKey),
+    ),
+  ).filter(Boolean);
+
+const getSubtitleDisplayName = (subtitle, language) => {
+  const subtitleLanguage = String(
+    subtitle?.language || subtitle?.text || "",
+  ).toLowerCase();
+  const names = {
+    th: { TH: "ไทย", EN: "Thai", CN: "泰语", JP: "タイ語" },
+    zh: { TH: "จีน", EN: "Chinese", CN: "中文", JP: "中国語" },
+    cn: { TH: "จีน", EN: "Chinese", CN: "中文", JP: "中国語" },
+    en: { TH: "อังกฤษ", EN: "English", CN: "英语", JP: "英語" },
+    jp: { TH: "ญี่ปุ่น", EN: "Japanese", CN: "日语", JP: "日本語" },
+    ja: { TH: "ญี่ปุ่น", EN: "Japanese", CN: "日语", JP: "日本語" },
+  };
+
+  return (
+    names[subtitleLanguage]?.[language] || subtitle?.text || subtitle?.language
+  );
+};
+
+const getSubtitlePreference = (subtitle) =>
+  subtitle
+    ? normalizeSubtitleKey(subtitle.language || subtitle.text || subtitle.id)
+    : "off";
+
+const getOrderedSubtitleDisplayName = (subtitle, language) => {
+  const subtitleLanguage = normalizeSubtitleKey(
+    subtitle?.language || subtitle?.text || "",
+  );
+  const names = {
+    th: {
+      TH: "\u0e44\u0e17\u0e22",
+      EN: "Thai",
+      CN: "\u6cf0\u8bed",
+      JP: "\u30bf\u30a4\u8a9e",
+    },
+    en: {
+      TH: "\u0e2d\u0e31\u0e07\u0e01\u0e24\u0e29",
+      EN: "English",
+      CN: "\u82f1\u8bed",
+      JP: "\u82f1\u8a9e",
+    },
+    ja: {
+      TH: "\u0e0d\u0e35\u0e48\u0e1b\u0e38\u0e48\u0e19",
+      EN: "Japanese",
+      CN: "\u65e5\u8bed",
+      JP: "\u65e5\u672c\u8a9e",
+    },
+    zh: {
+      TH: "\u0e08\u0e35\u0e19",
+      EN: "Chinese",
+      CN: "\u4e2d\u6587",
+      JP: "\u4e2d\u56fd\u8a9e",
+    },
+  };
+
+  return (
+    names[subtitleLanguage]?.[language] ||
+    getSubtitleDisplayName(subtitle, language)
+  );
+};
+
+const findSubtitleByPreference = (subtitles, preference) => {
+  const normalizedPreference = normalizeSubtitleKey(preference);
+
+  if (!normalizedPreference || normalizedPreference === "off") return null;
+
+  return (
+    subtitles.find((subtitle) =>
+      getSubtitleMatchKeys(subtitle).includes(normalizedPreference),
+    ) || null
+  );
+};
+
+const getSeriesTitle = (series, language) => {
+  if (!series) return "";
+
+  switch (language) {
+    case "EN":
+      return series.title_en || series.title_th || "";
+    case "JP":
+      return series.title_jp || series.title_th || series.title_en || "";
+    case "CN":
+      return series.title_cn || series.title_th || series.title_en || "";
+    default:
+      return series.title_th || series.title_en || "";
+  }
+};
+
 const disabledAdaptiveBitrateConfig = {
   enable: false,
   abr: false,
   showRealDefinition: false,
 };
+
+const interactivePlayerSelector = [
+  "button",
+  "a",
+  "input",
+  "select",
+  "textarea",
+  "[role='button']",
+  ".xgplayer-controls",
+  ".xgplayer-progress",
+  ".xgplayer-volume",
+  ".xgplayer-definition",
+  ".xgplayer-fullscreen",
+  ".xgplayer-play",
+  ".xgplayer-pause",
+  ".xgplayer-start",
+].join(",");
 
 const isKnownVePlayerDevWarning = (value) => {
   const message =
@@ -57,6 +217,23 @@ const isKnownVePlayerDevWarning = (value) => {
   );
 };
 
+const isKnownVePlayerDevWarningArgs = (args) => {
+  const values = Array.from(args || []);
+
+  return (
+    values.some(isKnownVePlayerDevWarning) ||
+    isKnownVePlayerDevWarning(
+      values
+        .map((value) =>
+          typeof value === "string"
+            ? value
+            : value?.message || value?.stack || String(value || ""),
+        )
+        .join(" "),
+    )
+  );
+};
+
 function getLabels(language) {
   switch (language) {
     case "EN":
@@ -65,6 +242,11 @@ function getLabels(language) {
         missing: "No video available",
         tokenError: "Unable to load video",
         back: "Back",
+        favorite: "Favorite",
+        list: "List",
+        settings: "Settings",
+        subtitles: "Subtitles",
+        subtitlesOff: "Subtitles off",
       };
     case "JP":
       return {
@@ -90,14 +272,69 @@ function getLabels(language) {
   }
 }
 
+function getWatchOverlayLabels(language) {
+  switch (language) {
+    case "EN":
+      return {
+        favorite: "Favorite",
+        list: "List",
+        settings: "Settings",
+        subtitles: "Subtitles",
+        subtitlesOff: "Subtitles off",
+      };
+    case "JP":
+      return {
+        favorite: "お気に入り",
+        list: "リスト",
+        settings: "設定",
+        subtitles: "字幕",
+        subtitlesOff: "字幕オフ",
+      };
+    case "CN":
+      return {
+        favorite: "收藏",
+        list: "列表",
+        settings: "设置",
+        subtitles: "字幕",
+        subtitlesOff: "关闭字幕",
+      };
+    default:
+      return {
+        favorite: "รายการโปรด",
+        list: "รายการ",
+        settings: "ตั้งค่า",
+        subtitles: "คำบรรยาย",
+        subtitlesOff: "ปิดคำบรรยาย",
+      };
+  }
+}
+
 const VePlayerComponent = forwardRef(function VePlayerComponent(
-  { vid, playAuthToken, playDomain, subtitles },
+  {
+    vid,
+    playAuthToken,
+    playDomain,
+    subtitles,
+    activeSubtitle,
+    onPausedChange,
+    onEnded,
+  },
   ref,
 ) {
   const containerRef = useRef(null);
   const playerRef = useRef(null);
+  const onPausedChangeRef = useRef(onPausedChange);
+  const onEndedRef = useRef(onEnded);
   const subtitlePluginRef = useRef(null);
   const pendingSubtitleRef = useRef(undefined);
+
+  useEffect(() => {
+    onPausedChangeRef.current = onPausedChange;
+  }, [onPausedChange]);
+
+  useEffect(() => {
+    onEndedRef.current = onEnded;
+  }, [onEnded]);
 
   const resolveSubtitlePlugin = () => {
     if (subtitlePluginRef.current) return subtitlePluginRef.current;
@@ -141,16 +378,53 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
         ? subtitlePlugin.getList()
         : subtitlePlugin.curList || subtitlePlugin.list || []) || [];
     const pluginSubtitle = Array.isArray(list)
-      ? list.find(
-          (item) =>
-            String(item?.id) === String(subtitle.id) ||
-            String(item?.language) === String(subtitle.language),
-        )
+      ? list.find((item) => subtitlesMatch(item, subtitle))
       : null;
+
+    if (Array.isArray(list) && list.length === 0) {
+      pendingSubtitleRef.current = subtitle;
+      return false;
+    }
+
+    if (Array.isArray(list) && list.length > 0 && !pluginSubtitle) {
+      pendingSubtitleRef.current = subtitle;
+      return false;
+    }
 
     subtitlePlugin.openSubtitle?.();
     subtitlePlugin.switchSubTitle?.(pluginSubtitle || subtitle);
     return true;
+  };
+
+  const handlePlayerClick = (event) => {
+    const target = event.target;
+
+    if (
+      target instanceof Element &&
+      target.closest(interactivePlayerSelector)
+    ) {
+      return;
+    }
+
+    const player = playerRef.current?.player || playerRef.current;
+    const video = containerRef.current?.querySelector("video");
+    const isPaused =
+      typeof player?.paused === "boolean"
+        ? player.paused
+        : typeof video?.paused === "boolean"
+          ? video.paused
+          : false;
+
+    if (isPaused) return;
+
+    if (typeof player?.pause === "function") {
+      player.pause();
+      onPausedChangeRef.current?.(true);
+      return;
+    }
+
+    video?.pause?.();
+    onPausedChangeRef.current?.(true);
   };
 
   useImperativeHandle(ref, () => ({
@@ -165,12 +439,14 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
     let cancelled = false;
     let restoreConsoleError = null;
     let removeDevErrorListeners = null;
+    let removeVideoPlaybackListeners = null;
+    let videoListenerTimer = null;
 
     if (process.env.NODE_ENV === "development") {
       const originalConsoleError = console.error;
 
       const patchedConsoleError = (...args) => {
-        if (args.some(isKnownVePlayerDevWarning)) return;
+        if (isKnownVePlayerDevWarningArgs(args)) return;
 
         originalConsoleError(...args);
       };
@@ -200,7 +476,10 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
       window.addEventListener("unhandledrejection", handleUnhandledRejection);
       removeDevErrorListeners = () => {
         window.removeEventListener("error", handleError);
-        window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+        window.removeEventListener(
+          "unhandledrejection",
+          handleUnhandledRejection,
+        );
       };
     }
 
@@ -221,7 +500,10 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
 
         containerRef.current.id = playerId;
 
-        if (BYTEPLUS_LICENSE && typeof VePlayer.setLicenseConfig === "function") {
+        if (
+          BYTEPLUS_LICENSE &&
+          typeof VePlayer.setLicenseConfig === "function"
+        ) {
           await VePlayer.setLicenseConfig({ license: BYTEPLUS_LICENSE });
         }
 
@@ -237,6 +519,22 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
               )
               .map(normalizeSubtitle)
           : [];
+        const selectedSubtitle =
+          activeSubtitle === null
+            ? null
+            : activeSubtitle
+              ? normalizedSubtitles.find((subtitle) =>
+                  subtitlesMatch(subtitle, activeSubtitle),
+                ) || activeSubtitle
+              : null;
+        const playerSubtitles =
+          selectedSubtitle === null || activeSubtitle === undefined
+            ? normalizedSubtitles
+            : normalizedSubtitles.map((subtitle) => ({
+                ...subtitle,
+                default: subtitlesMatch(subtitle, selectedSubtitle),
+                isDefault: subtitlesMatch(subtitle, selectedSubtitle),
+              }));
 
         const playerConfig = {
           id: playerId,
@@ -277,11 +575,11 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
           },
         };
 
-        if (normalizedSubtitles.length > 0 && VePlayer.Subtitle) {
+        if (playerSubtitles.length > 0 && VePlayer.Subtitle) {
           playerConfig.plugins = [VePlayer.Subtitle];
           playerConfig.Subtitle = {
-            isDefaultOpen: true,
-            list: normalizedSubtitles,
+            isDefaultOpen: activeSubtitle !== null,
+            list: playerSubtitles,
             style: {
               offsetBottom: SUBTITLE_OFFSET_BOTTOM_PERCENT,
             },
@@ -290,6 +588,63 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
 
         playerRef.current = new VePlayer(playerConfig);
         subtitlePluginRef.current = null;
+        onPausedChangeRef.current?.(false);
+
+        let videoLookupAttempts = 0;
+        const attachVideoPlaybackListeners = () => {
+          const video = containerRef.current?.querySelector("video");
+
+          if (!video) {
+            videoLookupAttempts += 1;
+            if (videoLookupAttempts > 50) {
+              clearInterval(videoListenerTimer);
+              videoListenerTimer = null;
+            }
+            return;
+          }
+
+          clearInterval(videoListenerTimer);
+          videoListenerTimer = null;
+
+          const handlePause = () => onPausedChangeRef.current?.(true);
+          const handlePlay = () => onPausedChangeRef.current?.(false);
+          const handleEnded = () => onEndedRef.current?.();
+
+          video.addEventListener("pause", handlePause);
+          video.addEventListener("play", handlePlay);
+          video.addEventListener("ended", handleEnded);
+          onPausedChangeRef.current?.(video.paused);
+
+          removeVideoPlaybackListeners = () => {
+            video.removeEventListener("pause", handlePause);
+            video.removeEventListener("play", handlePlay);
+            video.removeEventListener("ended", handleEnded);
+          };
+        };
+
+        videoListenerTimer = window.setInterval(
+          attachVideoPlaybackListeners,
+          100,
+        );
+        attachVideoPlaybackListeners();
+
+        const retrySubtitleSwitch = (attempt = 0) => {
+          const subtitleToApply =
+            pendingSubtitleRef.current !== undefined
+              ? pendingSubtitleRef.current
+              : activeSubtitle;
+
+          if (subtitleToApply !== undefined && applySubtitle(subtitleToApply)) {
+            pendingSubtitleRef.current = undefined;
+            return;
+          }
+
+          if (!cancelled && subtitleToApply !== undefined && attempt < 20) {
+            window.setTimeout(() => retrySubtitleSwitch(attempt + 1), 150);
+          }
+        };
+
+        window.setTimeout(retrySubtitleSwitch, 0);
       } catch (error) {
         console.error("Failed to initialize BytePlus player:", error);
       }
@@ -305,6 +660,11 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
         playerRef.current = null;
       }
 
+      if (videoListenerTimer) {
+        clearInterval(videoListenerTimer);
+      }
+
+      removeVideoPlaybackListeners?.();
       subtitlePluginRef.current = null;
       removeDevErrorListeners?.();
       restoreConsoleError?.();
@@ -314,7 +674,8 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
   return (
     <div
       ref={containerRef}
-      className="veplayer-raised-subtitle h-full w-full bg-black"
+      onClick={handlePlayerClick}
+      className="w-full h-full bg-black veplayer-raised-subtitle"
     />
   );
 });
@@ -323,15 +684,232 @@ export default function WatchPage() {
   const { language } = useLanguage();
   const router = useRouter();
   const params = useParams();
-  const labels = getLabels(language);
+  const labels = { ...getLabels(language), ...getWatchOverlayLabels(language) };
   const seriesId = params?.id;
+  const playerControlRef = useRef(null);
+  const subtitlePreferenceRef = useRef("");
 
   const [episode, setEpisode] = useState(null);
+  const [episodes, setEpisodes] = useState([]);
+  const [seriesTitle, setSeriesTitle] = useState("");
   const [playAuthToken, setPlayAuthToken] = useState("");
   const [playDomain, setPlayDomain] = useState("");
   const [subtitles, setSubtitles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isEpisodeLoading, setIsEpisodeLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isVideoPaused, setIsVideoPaused] = useState(false);
+  const [selectedSubtitleId, setSelectedSubtitleId] = useState("");
+  const [activeSubtitle, setActiveSubtitle] = useState(undefined);
+  const [isSubtitleMenuOpen, setIsSubtitleMenuOpen] = useState(false);
+  const [isEpisodeMenuOpen, setIsEpisodeMenuOpen] = useState(false);
+  const [activeEpisodeRangeStart, setActiveEpisodeRangeStart] = useState(1);
+  const [vipLockedEpisode, setVipLockedEpisode] = useState(null);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return undefined;
+
+    const originalConsoleError = console.error;
+    const patchedConsoleError = (...args) => {
+      if (isKnownVePlayerDevWarningArgs(args)) return;
+
+      originalConsoleError(...args);
+    };
+
+    console.error = patchedConsoleError;
+
+    return () => {
+      if (console.error === patchedConsoleError) {
+        console.error = originalConsoleError;
+      }
+    };
+  }, []);
+
+  const subtitleOptions = Array.isArray(subtitles)
+    ? subtitles
+        .filter(
+          (sub) =>
+            sub &&
+            typeof (sub.url || sub.src) === "string" &&
+            (sub.url || sub.src).trim().length > 0,
+        )
+        .map(normalizeSubtitle)
+    : [];
+  const orderedSubtitleOptions = getOrderedSubtitleOptions(subtitleOptions);
+
+  const subtitleMenuOptions = [
+    ...orderedSubtitleOptions.map((subtitle) => ({
+      id: subtitle.id,
+      label: getOrderedSubtitleDisplayName(subtitle, language),
+      subtitle,
+    })),
+    {
+      id: "off",
+      label: labels.subtitlesOff,
+      subtitle: null,
+    },
+  ];
+
+  const handleSubtitleSelect = (option) => {
+    playerControlRef.current?.switchSubtitle(option.subtitle);
+    setSelectedSubtitleId(option.id);
+    setActiveSubtitle(option.subtitle);
+    subtitlePreferenceRef.current = getSubtitlePreference(option.subtitle);
+  };
+
+  const applyFetchedSubtitles = useCallback(
+    (fetchedSubtitles) => {
+      const normalizedSubtitles = fetchedSubtitles
+        .filter(
+          (sub) =>
+            sub &&
+            typeof (sub.url || sub.src) === "string" &&
+            (sub.url || sub.src).trim().length > 0,
+        )
+        .map(normalizeSubtitle);
+      const orderedSubtitles = getOrderedSubtitleOptions(normalizedSubtitles);
+      const defaultSubtitle =
+        orderedSubtitles.find((subtitle) => subtitle.default) ||
+        orderedSubtitles[0] ||
+        null;
+      const preferredSubtitle =
+        subtitlePreferenceRef.current === ""
+          ? defaultSubtitle
+          : findSubtitleByPreference(
+              normalizedSubtitles,
+              subtitlePreferenceRef.current,
+            );
+      const subtitleToUse =
+        subtitlePreferenceRef.current === "off" ? null : preferredSubtitle;
+
+      setSubtitles(fetchedSubtitles);
+      setActiveSubtitle(subtitleToUse);
+      setSelectedSubtitleId(subtitleToUse?.id || "off");
+    },
+    [setSubtitles, setSelectedSubtitleId, setActiveSubtitle],
+  );
+
+  const loadEpisodeVideo = useCallback(
+    async (targetEpisode) => {
+      const vid = targetEpisode?.video_url?.trim();
+
+      setEpisode(targetEpisode);
+      setError("");
+      setPlayAuthToken("");
+      setPlayDomain("");
+      setSubtitles([]);
+      setSelectedSubtitleId("");
+      setActiveSubtitle(undefined);
+      setVipLockedEpisode(null);
+
+      if (!vid) {
+        setError(labels.missing);
+        return false;
+      }
+
+      const playAuthResponse = await fetch(
+        `/api/vod/playauth?vid=${encodeURIComponent(vid)}`,
+      );
+      const playAuthData = await playAuthResponse.json();
+
+      if (!playAuthResponse.ok || !playAuthData.playAuthToken) {
+        setError(playAuthData.error || labels.tokenError);
+        return false;
+      }
+
+      setPlayAuthToken(playAuthData.playAuthToken);
+      setPlayDomain(playAuthData.playDomain || "");
+      applyFetchedSubtitles(
+        Array.isArray(playAuthData.subtitles) ? playAuthData.subtitles : [],
+      );
+      return true;
+    },
+    [applyFetchedSubtitles, labels.missing, labels.tokenError],
+  );
+
+  const handleEpisodeSelect = async (targetEpisode) => {
+    if (!targetEpisode || targetEpisode.is_free === false || isEpisodeLoading) {
+      return;
+    }
+
+    setIsEpisodeLoading(true);
+    setIsEpisodeMenuOpen(false);
+    setIsSubtitleMenuOpen(false);
+    setIsVideoPaused(false);
+    setVipLockedEpisode(null);
+
+    try {
+      await loadEpisodeVideo(targetEpisode);
+    } catch (err) {
+      console.error("Failed to load selected episode:", err);
+      setError(labels.tokenError);
+    } finally {
+      setIsEpisodeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isVideoPaused) {
+      setIsSubtitleMenuOpen(false);
+      setIsEpisodeMenuOpen(false);
+    }
+  }, [isVideoPaused]);
+
+  const handleVideoEnded = useCallback(async () => {
+    if (!episode || isEpisodeLoading) return;
+
+    const currentEpisodeIndex = episodes.findIndex(
+      (item) => item?.id === episode.id,
+    );
+    const nextEpisode =
+      currentEpisodeIndex >= 0 ? episodes[currentEpisodeIndex + 1] : null;
+
+    if (!nextEpisode) return;
+
+    setIsEpisodeMenuOpen(false);
+    setIsSubtitleMenuOpen(false);
+
+    if (nextEpisode.is_free === false) {
+      setVipLockedEpisode(nextEpisode);
+      setIsVideoPaused(true);
+      return;
+    }
+
+    setIsEpisodeLoading(true);
+    setIsVideoPaused(false);
+
+    try {
+      await loadEpisodeVideo(nextEpisode);
+    } catch (err) {
+      console.error("Failed to autoplay next episode:", err);
+      setError(labels.tokenError);
+    } finally {
+      setIsEpisodeLoading(false);
+    }
+  }, [
+    episode,
+    episodes,
+    isEpisodeLoading,
+    labels.tokenError,
+    loadEpisodeVideo,
+  ]);
+
+  const episodeRangeStarts = Array.from(
+    { length: Math.max(1, Math.ceil(episodes.length / 25)) },
+    (_, index) => index * 25 + 1,
+  );
+  const activeEpisodeRangeIndex = Math.max(
+    0,
+    episodeRangeStarts.indexOf(activeEpisodeRangeStart),
+  );
+  const visibleEpisodes = episodes.slice(
+    activeEpisodeRangeIndex * 25,
+    activeEpisodeRangeIndex * 25 + 25,
+  );
+  const paddedVisibleEpisodes = [
+    ...visibleEpisodes,
+    ...Array.from({ length: Math.max(0, 25 - visibleEpisodes.length) }),
+  ];
 
   useEffect(() => {
     if (!seriesId) return;
@@ -339,36 +917,34 @@ export default function WatchPage() {
     async function fetchPlayerData() {
       setLoading(true);
       setError("");
+      setIsVideoPaused(false);
+      setIsSubtitleMenuOpen(false);
+      setIsEpisodeMenuOpen(false);
+      setSelectedSubtitleId("");
+      setActiveSubtitle(undefined);
+      setEpisodes([]);
+      setSeriesTitle("");
+      setActiveEpisodeRangeStart(1);
+      setVipLockedEpisode(null);
 
       try {
-        const episodeResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/episode?select=id,series_id,episode_no,video_url&series_id=eq.${encodeURIComponent(seriesId)}&order=episode_no.asc&limit=1`,
-          { headers },
-        );
+        const [episodeResponse, seriesResponse] = await Promise.all([
+          fetch(
+            `${SUPABASE_URL}/rest/v1/episode?select=id,series_id,episode_no,video_url,is_free&series_id=eq.${encodeURIComponent(seriesId)}&order=episode_no.asc`,
+            { headers },
+          ),
+          fetch(
+            `${SUPABASE_URL}/rest/v1/series?select=title_th,title_en,title_jp,title_cn&id=eq.${encodeURIComponent(seriesId)}&limit=1`,
+            { headers },
+          ),
+        ]);
         const episodeData = await episodeResponse.json();
+        const seriesData = await seriesResponse.json();
         const firstEpisode = episodeData?.[0] || null;
-        const vid = firstEpisode?.video_url?.trim();
 
-        setEpisode(firstEpisode);
-
-        if (!vid) {
-          setError(labels.missing);
-          return;
-        }
-
-        const playAuthResponse = await fetch(
-          `/api/vod/playauth?vid=${encodeURIComponent(vid)}`,
-        );
-        const playAuthData = await playAuthResponse.json();
-
-        if (!playAuthResponse.ok || !playAuthData.playAuthToken) {
-          setError(playAuthData.error || labels.tokenError);
-          return;
-        }
-
-        setPlayAuthToken(playAuthData.playAuthToken);
-        setPlayDomain(playAuthData.playDomain || "");
-        setSubtitles(Array.isArray(playAuthData.subtitles) ? playAuthData.subtitles : []);
+        setEpisodes(Array.isArray(episodeData) ? episodeData : []);
+        setSeriesTitle(getSeriesTitle(seriesData?.[0], language));
+        await loadEpisodeVideo(firstEpisode);
       } catch (err) {
         console.error("Failed to load player data:", err);
         setError(labels.tokenError);
@@ -378,7 +954,7 @@ export default function WatchPage() {
     }
 
     fetchPlayerData();
-  }, [seriesId, labels.missing, labels.tokenError]);
+  }, [seriesId, language, labels.tokenError, loadEpisodeVideo]);
 
   const showPlayer = episode?.video_url && playAuthToken && !error;
 
@@ -387,41 +963,390 @@ export default function WatchPage() {
       className="fixed inset-0 z-[100] flex bg-black text-white"
       onContextMenu={(event) => event.preventDefault()}
     >
-      <button
-        type="button"
-        onClick={() => router.back()}
-        aria-label={labels.back}
-        className="absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md active:scale-95"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      {showPlayer && isVideoPaused && !vipLockedEpisode ? (
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label={labels.back}
+          className="absolute z-20 flex items-center justify-center w-10 h-10 text-white rounded-full left-4 top-4 bg-black/55 backdrop-blur-md active:scale-95"
         >
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+      ) : null}
 
-      {loading ? (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-4">
+      {showPlayer && isVideoPaused && !vipLockedEpisode ? (
+        <div className="absolute bottom-[72px] right-4 z-20 flex flex-col items-center gap-5">
+          <button
+            type="button"
+            aria-label={labels.favorite}
+            className="flex h-9 w-9 items-center justify-center text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] active:scale-95"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M19.5 12.6 12 20l-7.5-7.4a5 5 0 0 1 7.1-7.1l.4.4.4-.4a5 5 0 0 1 7.1 7.1Z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsEpisodeMenuOpen(true);
+              setIsSubtitleMenuOpen(false);
+            }}
+            aria-label={labels.list}
+            className="flex h-9 w-9 items-center justify-center text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] active:scale-95"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M8 6h12" />
+              <path d="M8 12h12" />
+              <path d="M8 18h12" />
+              <path d="m3 8 3-2-3-2v4Z" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsSubtitleMenuOpen(true);
+              setIsEpisodeMenuOpen(false);
+            }}
+            aria-label={labels.settings}
+            className="flex h-9 w-9 items-center justify-center text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] active:scale-95"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+              <path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1a2.1 2.1 0 0 1-3 3l-.1-.1a1.8 1.8 0 0 0-2-.4 1.8 1.8 0 0 0-1.1 1.7v.2a2.1 2.1 0 0 1-4.2 0v-.2a1.8 1.8 0 0 0-1.1-1.7 1.8 1.8 0 0 0-2 .4l-.1.1a2.1 2.1 0 0 1-3-3l.1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.7-1.1H2a2.1 2.1 0 0 1 0-4.2h.2a1.8 1.8 0 0 0 1.7-1.1 1.8 1.8 0 0 0-.4-2l-.1-.1a2.1 2.1 0 0 1 3-3l.1.1a1.8 1.8 0 0 0 2 .4 1.8 1.8 0 0 0 1.1-1.7V2a2.1 2.1 0 0 1 4.2 0v.2a1.8 1.8 0 0 0 1.1 1.7 1.8 1.8 0 0 0 2-.4l.1-.1a2.1 2.1 0 0 1 3 3l-.1.1a1.8 1.8 0 0 0-.4 2 1.8 1.8 0 0 0 1.7 1.1h.2a2.1 2.1 0 0 1 0 4.2h-.2A1.8 1.8 0 0 0 19.4 15Z" />
+            </svg>
+          </button>
+        </div>
+      ) : null}
+
+      {showPlayer && isVideoPaused && isEpisodeMenuOpen && !vipLockedEpisode ? (
+        <div className="absolute inset-0 z-30 flex items-end">
+          <button
+            type="button"
+            aria-label={labels.back}
+            onClick={() => setIsEpisodeMenuOpen(false)}
+            className="absolute inset-0 bg-black/45"
+          />
+          <div className="relative w-full bg-[#2B2B3A] px-3.5 pb-4 pt-3.5 text-white shadow-[0_-10px_28px_rgba(0,0,0,0.36)]">
+            <h2 className="mb-3 truncate text-[16px] font-medium leading-5 tracking-normal text-white">
+              {seriesTitle || labels.list}
+            </h2>
+
+            <div className="mb-3 grid grid-cols-5 gap-2">
+              {episodeRangeStarts.map((rangeStart) => {
+                const rangeEnd = rangeStart + 24;
+                const isActive = activeEpisodeRangeStart === rangeStart;
+
+                return (
+                  <button
+                    type="button"
+                    key={rangeStart}
+                    onClick={() => setActiveEpisodeRangeStart(rangeStart)}
+                    className={`h-6 border-b-2 px-1 text-center text-[10px] font-medium leading-none transition ${
+                      isActive
+                        ? "border-white text-white"
+                        : "border-transparent text-white/75"
+                    }`}
+                  >
+                    {rangeStart}-{rangeEnd}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-5 grid-rows-5 gap-2">
+              {paddedVisibleEpisodes.map((item, index) => {
+                const cellKey =
+                  item?.id || `empty-${activeEpisodeRangeStart}-${index}`;
+                const isCurrent = item && episode?.id === item.id;
+                const isLocked = item?.is_free === false;
+
+                if (!item) {
+                  return (
+                    <div
+                      key={cellKey}
+                      aria-hidden="true"
+                      className="h-[38px] rounded border border-transparent"
+                    />
+                  );
+                }
+
+                return (
+                  <button
+                    type="button"
+                    key={cellKey}
+                    onClick={() => handleEpisodeSelect(item)}
+                    disabled={isLocked || isEpisodeLoading}
+                    aria-label={`Episode ${item.episode_no}${
+                      isLocked ? " locked" : ""
+                    }`}
+                    className={`relative flex h-[38px] items-center justify-center rounded border text-[12px] font-medium leading-none transition ${
+                      isCurrent
+                        ? "border-[#7C4DFF] bg-[#7C4DFF] text-white shadow-[0_0_14px_rgba(124,77,255,0.28)]"
+                        : "border-white/45 bg-transparent text-white/90"
+                    } ${
+                      isLocked
+                        ? "cursor-not-allowed text-white/80"
+                        : "active:scale-95"
+                    }`}
+                  >
+                    {isCurrent ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M8 5v14l11-7-11-7Z" />
+                      </svg>
+                    ) : (
+                      item.episode_no
+                    )}
+
+                    {isLocked ? (
+                      <span className="absolute right-1 top-0.5 text-[#F59E0B]">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="7"
+                          height="7"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <rect x="5" y="10" width="14" height="11" rx="2" />
+                          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                        </svg>
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showPlayer && isVideoPaused && isSubtitleMenuOpen && !vipLockedEpisode ? (
+        <div className="absolute inset-0 z-30 flex items-end">
+          <button
+            type="button"
+            aria-label={labels.back}
+            onClick={() => setIsSubtitleMenuOpen(false)}
+            className="absolute inset-0 bg-black/45"
+          />
+          <div className="relative w-full bg-[#2b2b3d] px-4 pb-6 pt-5 text-white">
+            <h2 className="px-3 mb-2 text-2xl font-medium leading-none">
+              {labels.subtitles}
+            </h2>
+            <div className="overflow-hidden rounded-lg bg-[#1d1d29]">
+              {subtitleMenuOptions.map((option, index) => {
+                const isSelected = selectedSubtitleId === option.id;
+
+                return (
+                  <button
+                    type="button"
+                    key={option.id}
+                    onClick={() => handleSubtitleSelect(option)}
+                    className={`flex h-11 w-full items-center justify-between px-3 text-left text-lg ${
+                      index > 0 ? "border-t border-white/15" : ""
+                    }`}
+                  >
+                    <span>{option.label}</span>
+                    {isSelected ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m20 6-11 11-5-5" />
+                      </svg>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showPlayer && vipLockedEpisode ? (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/62 px-4 backdrop-blur-[2px]">
+          <div className="relative w-full max-w-[360px] overflow-hidden rounded-[18px] border border-[#C15CFF] bg-[#12051F] px-7 pb-7 pt-6 text-white shadow-[0_0_34px_rgba(193,92,255,0.34)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(138,43,226,0.34),transparent_36%),radial-gradient(circle_at_88%_18%,rgba(193,92,255,0.2),transparent_24%)]" />
+            <div className="relative flex flex-col items-center text-center">
+              <h2 className="text-[28px] font-semibold leading-none tracking-normal">
+                MinChap <span className="text-[#B85CFF]">VIP</span>
+              </h2>
+              <img
+                src="/popcorn.svg"
+                alt=""
+                aria-hidden="true"
+                className="mt-3 h-[78px] w-[78px] object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.45)]"
+              />
+              <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-[#B85CFF]/70 bg-[#6F2CB8]/35 px-4 py-1.5 text-[13px] font-medium text-[#E5C6FF]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="5" y="10" width="14" height="11" rx="2" />
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                </svg>
+                ตอนที่ {vipLockedEpisode.episode_no} • VIP เท่านั้น
+              </div>
+
+              <div className="mt-5 text-[34px] font-bold leading-none">
+                ดูต่อด้วย <span className="text-[#B85CFF]">VIP</span>
+              </div>
+              <p className="mt-2 text-[18px] font-medium leading-6 text-[#D3B8F5]">
+                คุณดูฟรีครบ 10 ตอนแล้ว
+              </p>
+
+              <div className="mt-6 grid w-full gap-3 text-left text-[16px] text-white/92">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#B85CFF] text-[#B85CFF]">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M8 5v14l11-7-11-7Z" />
+                    </svg>
+                  </span>
+                  ดูต่อได้ทันที
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#B85CFF] text-[13px] font-bold text-[#B85CFF]">
+                    AD
+                  </span>
+                  ไม่มีโฆษณา
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center text-[#B85CFF]">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect x="3" y="5" width="18" height="16" rx="2" />
+                      <path d="m3 9 18-4" />
+                      <path d="m7 5 2 4" />
+                      <path d="m13 5 2 4" />
+                    </svg>
+                  </span>
+                  ดูครบทุกตอน
+                </div>
+              </div>
+
+              <div className="mt-7 grid w-full grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setVipLockedEpisode(null)}
+                  className="h-[58px] rounded-xl border border-white/28 bg-black/18 text-[16px] font-medium text-white/90 active:scale-95"
+                >
+                  ไว้ทีหลัง
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/app/vip")}
+                  className="h-[58px] rounded-xl bg-gradient-to-br from-[#B653FF] to-[#7C35FF] text-[16px] font-semibold text-white shadow-[0_0_24px_rgba(184,92,255,0.48)] active:scale-95"
+                >
+                  สมัคร VIP
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {loading || isEpisodeLoading ? (
+        <div className="flex flex-col items-center justify-center w-full h-full gap-4">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#BF8EFF] border-t-transparent" />
           <p className="text-sm text-white/60">{labels.loading}</p>
         </div>
       ) : showPlayer ? (
         <VePlayerComponent
+          ref={playerControlRef}
           vid={episode.video_url.trim()}
           playAuthToken={playAuthToken}
           playDomain={playDomain}
           subtitles={subtitles}
+          activeSubtitle={activeSubtitle}
+          onPausedChange={setIsVideoPaused}
+          onEnded={handleVideoEnded}
         />
       ) : (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="flex flex-col items-center justify-center w-full h-full gap-4 px-6 text-center">
           <p className="text-lg font-bold">{error || labels.missing}</p>
           <button
             type="button"
