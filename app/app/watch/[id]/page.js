@@ -828,7 +828,15 @@ export default function WatchPage() {
   );
 
   const handleEpisodeSelect = async (targetEpisode) => {
-    if (!targetEpisode || targetEpisode.is_free === false || isEpisodeLoading) {
+    if (!targetEpisode || isEpisodeLoading) {
+      return;
+    }
+
+    if (targetEpisode.is_free === false) {
+      setVipLockedEpisode(targetEpisode);
+      setIsEpisodeMenuOpen(false);
+      setIsSubtitleMenuOpen(false);
+      setIsVideoPaused(true);
       return;
     }
 
@@ -1117,7 +1125,7 @@ export default function WatchPage() {
                     type="button"
                     key={cellKey}
                     onClick={() => handleEpisodeSelect(item)}
-                    disabled={isLocked || isEpisodeLoading}
+                    disabled={isEpisodeLoading}
                     aria-label={`Episode ${item.episode_no}${
                       isLocked ? " locked" : ""
                     }`}
@@ -1127,7 +1135,7 @@ export default function WatchPage() {
                         : "border-white/45 bg-transparent text-white/90"
                     } ${
                       isLocked
-                        ? "cursor-not-allowed text-white/80"
+                        ? "text-white/80 active:scale-95"
                         : "active:scale-95"
                     }`}
                   >
