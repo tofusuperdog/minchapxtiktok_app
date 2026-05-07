@@ -18,27 +18,6 @@ const BYTEPLUS_LICENSE =
   "https://sf16-vod-license-multi.byteplusvod.com/obj/vod-license-sgcom/l-1122314769-ch-vod-a-1006938.lic";
 const SUBTITLE_OFFSET_BOTTOM_PERCENT = 25;
 
-const isIOSDevice = () => {
-  if (typeof navigator === "undefined") return false;
-
-  return (
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  );
-};
-
-const supportsWebMPlayback = () => {
-  if (typeof document === "undefined") return true;
-
-  const video = document.createElement("video");
-  return Boolean(video.canPlayType('video/webm; codecs="vp8, vorbis"'));
-};
-
-const isLikelyWebMVideo = (value) => {
-  const text = String(value || "").toLowerCase();
-  return text.includes("webm") || text.includes('vtype":"webm"');
-};
-
 const headers = {
   apikey: SUPABASE_ANON_KEY,
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -579,29 +558,7 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
           controlBar: {
             visible: true,
           },
-          videoAttributes: {
-            playsInline: true,
-            webkitPlaysInline: true,
-            muted: true,
-            preload: "metadata",
-          },
         };
-
-        if (isIOSDevice()) {
-          playerConfig.videoAttributes = {
-            ...playerConfig.videoAttributes,
-            playsInline: true,
-            webkitPlaysInline: true,
-            muted: true,
-            x5VideoPlayerType: "h5",
-            x5VideoPlayerFullScreen: false,
-            x5VideoOrientation: "portraint",
-          };
-        }
-
-        if (!supportsWebMPlayback()) {
-          playerConfig.autoplay = false;
-        }
 
         if (playerSubtitles.length > 0 && VePlayer.Subtitle) {
           playerConfig.plugins = [VePlayer.Subtitle];
@@ -728,7 +685,6 @@ export default function WatchPage() {
   const [error, setError] = useState("");
   const [isVideoPaused, setIsVideoPaused] = useState(false);
   const [selectedSubtitleId, setSelectedSubtitleId] = useState("");
-  const [shouldUseFallbackVideo, setShouldUseFallbackVideo] = useState(false);
   const [activeSubtitle, setActiveSubtitle] = useState(undefined);
   const [isSubtitleMenuOpen, setIsSubtitleMenuOpen] = useState(false);
   const [isEpisodeMenuOpen, setIsEpisodeMenuOpen] = useState(false);
@@ -830,17 +786,10 @@ export default function WatchPage() {
       setSelectedSubtitleId("");
       setActiveSubtitle(undefined);
       setVipLockedEpisode(null);
-      setShouldUseFallbackVideo(false);
 
       if (!vid) {
         setError(labels.missing);
         return false;
-      }
-
-      if (isIOSDevice() && isLikelyWebMVideo(vid)) {
-        setShouldUseFallbackVideo(true);
-        setError("");
-        return true;
       }
 
       const playAuthResponse = await fetch(
@@ -1000,8 +949,7 @@ export default function WatchPage() {
     fetchPlayerData();
   }, [seriesId, language, labels.tokenError, loadEpisodeVideo]);
 
-  const showPlayer =
-    episode?.video_url && (playAuthToken || shouldUseFallbackVideo) && !error;
+  const showPlayer = episode?.video_url && playAuthToken && !error;
 
   return (
     <div
@@ -1218,7 +1166,10 @@ export default function WatchPage() {
         </div>
       ) : null}
 
-      {showPlayer && isVideoPaused && isSubtitleMenuOpen && !vipLockedEpisode ? (
+      {showPlayer &&
+      isVideoPaused &&
+      isSubtitleMenuOpen &&
+      !vipLockedEpisode ? (
         <div className="absolute inset-0 z-30 flex items-end">
           <button
             type="button"
@@ -1380,41 +1331,24 @@ export default function WatchPage() {
           <p className="text-sm text-white/60">{labels.loading}</p>
         </div>
       ) : showPlayer ? (
-        shouldUseFallbackVideo ? (
-          <video
-            key={episode.video_url.trim()}
-            className="h-full w-full bg-black object-contain"
-            controls
-            playsInline
-            webkitplaysinline="true"
-            preload="metadata"
-            src={episode.video_url.trim()}
-            autoPlay
-            muted
-            onPlay={() => setIsVideoPaused(false)}
-            onPause={() => setIsVideoPaused(true)}
-            onEnded={handleVideoEnded}
-          />
-        ) : (
-          <VePlayerComponent
-            ref={playerControlRef}
-            vid={episode.video_url.trim()}
-            playAuthToken={playAuthToken}
-            playDomain={playDomain}
-            subtitles={subtitles}
-            activeSubtitle={activeSubtitle}
-            onPausedChange={setIsVideoPaused}
-            onEnded={handleVideoEnded}
-            lineAppId={1006938}
-            lineUserId={`web-watch-${seriesId || "unknown"}`}
-          />
-        )
+        <VePlayerComponent
+          ref={playerControlRef}
+          vid={episode.video_url.trim()}
+          playAuthToken={playAuthToken}
+          playDomain={playDomain}
+          subtitles={subtitles}
+          activeSubtitle={activeSubtitle}
+          onPausedChange={setIsVideoPaused}
+          onEnded={handleVideoEnded}
+          lineAppId={1006938}
+          lineUserId={`web-watch-${seriesId || "unknown"}`}
+        />
       ) : (
         <div className="flex flex-col items-center justify-center w-full h-full gap-4 px-6 text-center">
           <p className="text-lg font-bold">{error || labels.missing}</p>
           <button
             type="button"
-            onClick={() => router.push("/app")}
+            onClick={() => router.back()}
             className="rounded-full bg-[#7B1ED6] px-6 py-2.5 text-sm font-bold text-white"
           >
             {labels.back}

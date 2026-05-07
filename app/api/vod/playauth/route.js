@@ -33,7 +33,12 @@ function dedupeSubtitles(subtitleList) {
   return subtitleList.filter((sub) => {
     const key = [
       sub.SubtitleId || "",
-      sub.SubtitleUrl || sub.Url || sub.MainUrl || sub.BackupUrl || sub.FileUrl || "",
+      sub.SubtitleUrl ||
+        sub.Url ||
+        sub.MainUrl ||
+        sub.BackupUrl ||
+        sub.FileUrl ||
+        "",
       sub.LanguageId || sub.Language || "",
     ].join("|");
 
@@ -68,12 +73,57 @@ function getSubtitleListForVid(subtitleRes, vid) {
   );
 }
 
+function normalizePlaybackSources(playInfoRes) {
+  const playbackInfoList =
+    playInfoRes?.Result?.PlayInfoList ||
+    playInfoRes?.Result?.PlayInfoListForVid ||
+    playInfoRes?.PlayInfoList ||
+    [];
+
+  return playbackInfoList
+    .map((item) => {
+      const url =
+        item?.Url || item?.PlayUrl || item?.PlayURL || item?.PlayUri || "";
+      return {
+        url: String(url).trim(),
+        isHls:
+          String(item?.Definition || item?.Format || item?.Type || "")
+            .toLowerCase()
+            .includes("hls") || /\.m3u8(\?|$)/i.test(String(url)),
+        isMp4:
+          String(item?.Definition || item?.Format || item?.Type || "")
+            .toLowerCase()
+            .includes("mp4") || /\.mp4(\?|$)/i.test(String(url)),
+        isWebm:
+          String(item?.Definition || item?.Format || item?.Type || "")
+            .toLowerCase()
+            .includes("webm") || /\.webm(\?|$)/i.test(String(url)),
+      };
+    })
+    .filter((item) => item.url);
+}
+
+function pickPreferredPlaybackSource(playbackSources, userAgent = "") {
+  const sources = Array.isArray(playbackSources) ? playbackSources : [];
+  const isIOS = /iPad|iPhone|iPod/i.test(userAgent);
+
+  if (isIOS) {
+    return sources.find((source) => source.isHls) || sources[0] || null;
+  }
+
+  return sources.find((source) => source.isMp4) || sources[0] || null;
+}
+
 export async function GET(request) {
   const searchParams = request.nextUrl.searchParams;
   const vid = (searchParams.get("vid") || "").trim();
+  const userAgent = request.headers.get("user-agent") || "";
 
   if (!vid) {
-    return NextResponse.json({ error: "Missing vid parameter" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing vid parameter" },
+      { status: 400 },
+    );
   }
 
   const accessKeyId =
@@ -103,6 +153,16 @@ export async function GET(request) {
 
     const playAuthToken = vodService.GetPlayAuthToken(baseParams, 3600);
     let subtitles = [];
+    let playbackSources = [];
+    let preferredSource = null;
+
+    try {
+      const playInfoRes = await vodService.GetPlayInfo(baseParams);
+      playbackSources = normalizePlaybackSources(playInfoRes);
+      preferredSource = pickPreferredPlaybackSource(playbackSources, userAgent);
+    } catch (playInfoError) {
+      console.error("Error fetching play info from BytePlus:", playInfoError);
+    }
 
     try {
       const subtitleRes = await vodService.GetSubtitleInfoList({
@@ -153,6 +213,8 @@ export async function GET(request) {
       playAuthToken,
       playDomain: "",
       subtitles,
+      playbackSources,
+      preferredPlaybackSource: preferredSource?.url || "",
     });
   } catch (error) {
     console.error("Error generating play auth token:", error);
