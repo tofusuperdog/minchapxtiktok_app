@@ -181,12 +181,6 @@ const getSeriesTitle = (series, language) => {
   }
 };
 
-const disabledAdaptiveBitrateConfig = {
-  enable: false,
-  abr: false,
-  showRealDefinition: false,
-};
-
 const interactivePlayerSelector = [
   "button",
   "a",
@@ -318,6 +312,8 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
     activeSubtitle,
     onPausedChange,
     onEnded,
+    lineAppId,
+    lineUserId,
   },
   ref,
 ) {
@@ -509,6 +505,14 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
 
         if (cancelled) return;
 
+        const parsedLineAppId = Number(lineAppId);
+        const vodLogOpts =
+          Number.isFinite(parsedLineAppId) && parsedLineAppId > 0
+            ? {
+                line_app_id: parsedLineAppId,
+                line_user_id: lineUserId || `web-${Date.now()}`,
+              }
+            : undefined;
         const normalizedSubtitles = Array.isArray(subtitles)
           ? subtitles
               .filter(
@@ -546,27 +550,8 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
           lang: "en",
           width: "100%",
           height: "100%",
-          license: BYTEPLUS_LICENSE,
-          disableVodLogOptsCheck: true,
-          autoBitrateOpts: disabledAdaptiveBitrateConfig,
-          adaptRange: {
-            enable: false,
-          },
-          DASHPlugin: {
-            abr: false,
-            autoBitrateOpts: disabledAdaptiveBitrateConfig,
-            adaptRange: {
-              enable: false,
-            },
-          },
-          HLSPlugin: {
-            abr: false,
-            autoBitrateOpts: disabledAdaptiveBitrateConfig,
-          },
-          Mp4EncryptPlayer: {
-            abr: false,
-            autoBitrateOpts: disabledAdaptiveBitrateConfig,
-          },
+          license: BYTEPLUS_LICENSE || undefined,
+          ...(vodLogOpts ? { vodLogOpts } : {}),
           autoplay: true,
           enableMenu: true,
           controls: true,
@@ -669,7 +654,7 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
       removeDevErrorListeners?.();
       restoreConsoleError?.();
     };
-  }, [vid, playAuthToken, playDomain, subtitles]);
+  }, [vid, playAuthToken, playDomain, lineAppId, lineUserId, subtitles]);
 
   return (
     <div
@@ -1352,6 +1337,8 @@ export default function WatchPage() {
           activeSubtitle={activeSubtitle}
           onPausedChange={setIsVideoPaused}
           onEnded={handleVideoEnded}
+          lineAppId={1006938}
+          lineUserId={`web-watch-${seriesId || "unknown"}`}
         />
       ) : (
         <div className="flex flex-col items-center justify-center w-full h-full gap-4 px-6 text-center">
