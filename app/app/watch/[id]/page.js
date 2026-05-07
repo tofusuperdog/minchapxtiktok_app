@@ -558,6 +558,12 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
           controlBar: {
             visible: true,
           },
+          videoAttributes: {
+            playsInline: true,
+            webkitPlaysInline: true,
+            muted: true,
+            preload: "metadata",
+          },
         };
 
         if (playerSubtitles.length > 0 && VePlayer.Subtitle) {
@@ -671,6 +677,7 @@ export default function WatchPage() {
   const params = useParams();
   const labels = { ...getLabels(language), ...getWatchOverlayLabels(language) };
   const seriesId = params?.id;
+  const isRealWatchId = String(seriesId || "") === "18";
   const playerControlRef = useRef(null);
   const subtitlePreferenceRef = useRef("");
 
@@ -907,7 +914,32 @@ export default function WatchPage() {
   useEffect(() => {
     if (!seriesId) return;
 
+    if (!isRealWatchId) {
+      setLoading(false);
+      setError("หน้านี้รองรับเฉพาะตอนจริงหมายเลข 18 เท่านั้น");
+      setEpisode(null);
+      setEpisodes([]);
+      setSeriesTitle("");
+      setPlayAuthToken("");
+      setPlayDomain("");
+      setSubtitles([]);
+      setSelectedSubtitleId("");
+      setActiveSubtitle(undefined);
+      setIsVideoPaused(false);
+      setIsEpisodeLoading(false);
+      setIsSubtitleMenuOpen(false);
+      setIsEpisodeMenuOpen(false);
+      setVipLockedEpisode(null);
+      return;
+    }
+
     async function fetchPlayerData() {
+      if (!isRealWatchId) {
+        setLoading(false);
+        setError("หน้านี้รองรับเฉพาะตอนจริงหมายเลข 18 เท่านั้น");
+        return;
+      }
+
       setLoading(true);
       setError("");
       setIsVideoPaused(false);
@@ -947,7 +979,7 @@ export default function WatchPage() {
     }
 
     fetchPlayerData();
-  }, [seriesId, language, labels.tokenError, loadEpisodeVideo]);
+  }, [seriesId, isRealWatchId, language, labels.tokenError, loadEpisodeVideo]);
 
   const showPlayer = episode?.video_url && playAuthToken && !error;
 
@@ -1345,7 +1377,7 @@ export default function WatchPage() {
           <p className="text-lg font-bold">{error || labels.missing}</p>
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => router.push("/app")}
             className="rounded-full bg-[#7B1ED6] px-6 py-2.5 text-sm font-bold text-white"
           >
             {labels.back}
