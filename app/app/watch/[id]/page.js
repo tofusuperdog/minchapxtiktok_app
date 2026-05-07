@@ -850,8 +850,14 @@ export default function WatchPage() {
           ? playAuthData.iosPlayAuthToken || playAuthData.playAuthToken
           : playAuthData.playAuthToken,
       );
-      setPlaybackUrl(playAuthData.preferredPlaybackSource || "");
-      setPlaybackStreamType(playAuthData.preferredPlaybackStreamType || "");
+      setPlaybackUrl(
+        shouldUseIOSPlayback ? "" : playAuthData.preferredPlaybackSource || "",
+      );
+      setPlaybackStreamType(
+        shouldUseIOSPlayback
+          ? ""
+          : playAuthData.preferredPlaybackStreamType || "",
+      );
       setPlayDomain(playAuthData.playDomain || "");
       applyFetchedSubtitles(
         Array.isArray(playAuthData.subtitles) ? playAuthData.subtitles : [],
