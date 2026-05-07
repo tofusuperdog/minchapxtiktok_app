@@ -228,6 +228,21 @@ const isKnownVePlayerDevWarningArgs = (args) => {
   );
 };
 
+const isIOSWebKit = () => {
+  if (typeof navigator === "undefined") return false;
+
+  const userAgent = navigator.userAgent || "";
+  const video = document.createElement("video");
+  const supportsNativeHls =
+    typeof video.canPlayType === "function" &&
+    Boolean(
+      video.canPlayType("application/vnd.apple.mpegurl") ||
+        video.canPlayType("application/x-mpegURL"),
+    );
+
+  return /iPad|iPhone|iPod/i.test(userAgent) && supportsNativeHls;
+};
+
 function getLabels(language) {
   switch (language) {
     case "EN":
@@ -307,6 +322,8 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
   {
     vid,
     playAuthToken,
+    playbackUrl,
+    playbackStreamType,
     playDomain,
     subtitles,
     activeSubtitle,
@@ -430,7 +447,9 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
   }));
 
   useEffect(() => {
-    if (!containerRef.current || !vid || !playAuthToken) return;
+    if (!containerRef.current || !vid || (!playAuthToken && !playbackUrl)) {
+      return;
+    }
 
     let cancelled = false;
     let restoreConsoleError = null;
@@ -542,11 +561,19 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
 
         const playerConfig = {
           id: playerId,
-          vid,
-          getVideoByToken: {
-            playAuthToken,
-            ...(playDomain ? { playDomain } : {}),
-          },
+          ...(playbackUrl
+            ? {
+                vid,
+                url: playbackUrl,
+                streamType: playbackStreamType || "webm",
+              }
+            : {
+                vid,
+                getVideoByToken: {
+                  playAuthToken,
+                  ...(playDomain ? { playDomain } : {}),
+                },
+              }),
           lang: "en",
           width: "100%",
           height: "100%",
@@ -654,7 +681,16 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
       removeDevErrorListeners?.();
       restoreConsoleError?.();
     };
-  }, [vid, playAuthToken, playDomain, lineAppId, lineUserId, subtitles]);
+  }, [
+    vid,
+    playAuthToken,
+    playbackUrl,
+    playbackStreamType,
+    playDomain,
+    lineAppId,
+    lineUserId,
+    subtitles,
+  ]);
 
   return (
     <div
@@ -678,6 +714,8 @@ export default function WatchPage() {
   const [episodes, setEpisodes] = useState([]);
   const [seriesTitle, setSeriesTitle] = useState("");
   const [playAuthToken, setPlayAuthToken] = useState("");
+  const [playbackUrl, setPlaybackUrl] = useState("");
+  const [playbackStreamType, setPlaybackStreamType] = useState("");
   const [playDomain, setPlayDomain] = useState("");
   const [subtitles, setSubtitles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -781,6 +819,8 @@ export default function WatchPage() {
       setEpisode(targetEpisode);
       setError("");
       setPlayAuthToken("");
+      setPlaybackUrl("");
+      setPlaybackStreamType("");
       setPlayDomain("");
       setSubtitles([]);
       setSelectedSubtitleId("");
@@ -792,8 +832,11 @@ export default function WatchPage() {
         return false;
       }
 
+      const shouldUseIOSPlayback = isIOSWebKit();
       const playAuthResponse = await fetch(
-        `/api/vod/playauth?vid=${encodeURIComponent(vid)}`,
+        `/api/vod/playauth?vid=${encodeURIComponent(vid)}${
+          shouldUseIOSPlayback ? "&platform=ios" : ""
+        }`,
       );
       const playAuthData = await playAuthResponse.json();
 
@@ -802,7 +845,13 @@ export default function WatchPage() {
         return false;
       }
 
-      setPlayAuthToken(playAuthData.playAuthToken);
+      setPlayAuthToken(
+        shouldUseIOSPlayback
+          ? playAuthData.iosPlayAuthToken || playAuthData.playAuthToken
+          : playAuthData.playAuthToken,
+      );
+      setPlaybackUrl(playAuthData.preferredPlaybackSource || "");
+      setPlaybackStreamType(playAuthData.preferredPlaybackStreamType || "");
       setPlayDomain(playAuthData.playDomain || "");
       applyFetchedSubtitles(
         Array.isArray(playAuthData.subtitles) ? playAuthData.subtitles : [],
@@ -949,7 +998,8 @@ export default function WatchPage() {
     fetchPlayerData();
   }, [seriesId, language, labels.tokenError, loadEpisodeVideo]);
 
-  const showPlayer = episode?.video_url && playAuthToken && !error;
+  const showPlayer =
+    episode?.video_url && (playAuthToken || playbackUrl) && !error;
 
   return (
     <div
@@ -1335,6 +1385,8 @@ export default function WatchPage() {
           ref={playerControlRef}
           vid={episode.video_url.trim()}
           playAuthToken={playAuthToken}
+          playbackUrl={playbackUrl}
+          playbackStreamType={playbackStreamType}
           playDomain={playDomain}
           subtitles={subtitles}
           activeSubtitle={activeSubtitle}

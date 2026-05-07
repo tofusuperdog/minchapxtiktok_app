@@ -73,51 +73,145 @@ function getSubtitleListForVid(subtitleRes, vid) {
   );
 }
 
-function normalizePlaybackSources(playInfoRes) {
-  const playbackInfoList =
-    playInfoRes?.Result?.PlayInfoList ||
-    playInfoRes?.Result?.PlayInfoListForVid ||
-    playInfoRes?.PlayInfoList ||
-    [];
+const IOS_COMPATIBLE_PLAYBACK_CANDIDATES = [
+  { FileType: "video", Format: "hls", Codec: "H264", Ssl: "1" },
+  { FileType: "video", Format: "mp4", Codec: "H264", Ssl: "1" },
+];
+const DEFAULT_PLAYBACK_PARAMS = { FileType: "video", Format: "webm", Ssl: "1" };
+const DEFAULT_PLAYBACK_CANDIDATES = [
+  { FileType: "video", Format: "webm", Ssl: "1" },
+  { FileType: "video", Format: "WEBM", Ssl: "1" },
+];
 
-  return playbackInfoList
-    .map((item) => {
-      const url =
-        item?.Url || item?.PlayUrl || item?.PlayURL || item?.PlayUri || "";
-      return {
-        url: String(url).trim(),
-        isHls:
-          String(item?.Definition || item?.Format || item?.Type || "")
-            .toLowerCase()
-            .includes("hls") || /\.m3u8(\?|$)/i.test(String(url)),
-        isMp4:
-          String(item?.Definition || item?.Format || item?.Type || "")
-            .toLowerCase()
-            .includes("mp4") || /\.mp4(\?|$)/i.test(String(url)),
-        isWebm:
-          String(item?.Definition || item?.Format || item?.Type || "")
-            .toLowerCase()
-            .includes("webm") || /\.webm(\?|$)/i.test(String(url)),
-      };
-    })
-    .filter((item) => item.url);
+function getPlayInfoList(playInfoRes) {
+  const playInfoList =
+    playInfoRes?.Result?.PlayInfoList || playInfoRes?.PlayInfoList || [];
+
+  return Array.isArray(playInfoList) ? playInfoList : [];
 }
 
-function pickPreferredPlaybackSource(playbackSources, userAgent = "") {
-  const sources = Array.isArray(playbackSources) ? playbackSources : [];
-  const isIOS = /iPad|iPhone|iPod/i.test(userAgent);
+function getPlaybackUrl(playInfo) {
+  return (
+    playInfo?.MainPlayUrl ||
+    playInfo?.BackupPlayUrl ||
+    playInfo?.Url ||
+    playInfo?.PlayUrl ||
+    playInfo?.PlayURL ||
+    playInfo?.PlayUri ||
+    ""
+  );
+}
 
-  if (isIOS) {
-    return sources.find((source) => source.isHls) || sources[0] || null;
+async function resolveIOSPlayback(baseParams) {
+  for (const candidate of IOS_COMPATIBLE_PLAYBACK_CANDIDATES) {
+    try {
+      const playInfoRes = await vodService.GetPlayInfo({
+        ...baseParams,
+        ...candidate,
+      });
+      const playInfoList = getPlayInfoList(playInfoRes);
+
+      if (playInfoList.length > 0) {
+        const selectedPlayInfo = playInfoList[0] || {};
+        const playbackUrl = getPlaybackUrl(selectedPlayInfo);
+
+        return {
+          params: { ...baseParams, ...candidate },
+          playbackUrl,
+          streamType: String(candidate.Format || "").toLowerCase(),
+          source: {
+            requestedFormat: candidate.Format,
+            requestedCodec: candidate.Codec,
+            selectedFormat: selectedPlayInfo?.Format || "",
+            selectedCodec: selectedPlayInfo?.Codec || "",
+            selectedDefinition: selectedPlayInfo?.Definition || "",
+            availableCount: playInfoList.length,
+          },
+        };
+      }
+    } catch (error) {
+      console.error("Error resolving BytePlus playback candidate:", {
+        vid: baseParams.Vid,
+        format: candidate.Format,
+        codec: candidate.Codec,
+        error,
+      });
+    }
   }
 
-  return sources.find((source) => source.isMp4) || sources[0] || null;
+  return {
+    params: {
+      ...baseParams,
+      ...IOS_COMPATIBLE_PLAYBACK_CANDIDATES[0],
+    },
+    playbackUrl: "",
+    streamType: "hls",
+    source: {
+      requestedFormat: IOS_COMPATIBLE_PLAYBACK_CANDIDATES[0].Format,
+      requestedCodec: IOS_COMPATIBLE_PLAYBACK_CANDIDATES[0].Codec,
+      selectedFormat: "",
+      selectedCodec: "",
+      selectedDefinition: "",
+      availableCount: 0,
+    },
+  };
+}
+
+async function resolveDefaultPlayback(baseParams) {
+  for (const candidate of DEFAULT_PLAYBACK_CANDIDATES) {
+    try {
+      const playInfoRes = await vodService.GetPlayInfo({
+        ...baseParams,
+        ...candidate,
+      });
+      const playInfoList = getPlayInfoList(playInfoRes);
+
+      if (playInfoList.length > 0) {
+        const selectedPlayInfo = playInfoList[0] || {};
+        const playbackUrl = getPlaybackUrl(selectedPlayInfo);
+
+        return {
+          params: { ...baseParams, ...candidate },
+          playbackUrl,
+          streamType: "webm",
+          source: {
+            requestedFormat: candidate.Format,
+            requestedCodec: candidate.Codec || "",
+            selectedFormat: selectedPlayInfo?.Format || "",
+            selectedCodec: selectedPlayInfo?.Codec || "",
+            selectedDefinition: selectedPlayInfo?.Definition || "",
+            availableCount: playInfoList.length,
+          },
+        };
+      }
+    } catch (error) {
+      console.error("Error resolving BytePlus default playback candidate:", {
+        vid: baseParams.Vid,
+        format: candidate.Format,
+        error,
+      });
+    }
+  }
+
+  return {
+    params: { ...baseParams, ...DEFAULT_PLAYBACK_PARAMS },
+    playbackUrl: "",
+    streamType: "webm",
+    source: {
+      requestedFormat: DEFAULT_PLAYBACK_PARAMS.Format,
+      requestedCodec: "",
+      selectedFormat: "",
+      selectedCodec: "",
+      selectedDefinition: "",
+      availableCount: 0,
+    },
+  };
 }
 
 export async function GET(request) {
   const searchParams = request.nextUrl.searchParams;
   const vid = (searchParams.get("vid") || "").trim();
-  const userAgent = request.headers.get("user-agent") || "";
+  const platform = (searchParams.get("platform") || "").trim().toLowerCase();
 
   if (!vid) {
     return NextResponse.json(
@@ -151,18 +245,24 @@ export async function GET(request) {
       ...(spaceName ? { SpaceName: spaceName } : {}),
     };
 
-    const playAuthToken = vodService.GetPlayAuthToken(baseParams, 3600);
     let subtitles = [];
-    let playbackSources = [];
-    let preferredSource = null;
-
-    try {
-      const playInfoRes = await vodService.GetPlayInfo(baseParams);
-      playbackSources = normalizePlaybackSources(playInfoRes);
-      preferredSource = pickPreferredPlaybackSource(playbackSources, userAgent);
-    } catch (playInfoError) {
-      console.error("Error fetching play info from BytePlus:", playInfoError);
-    }
+    const shouldUseIOSPlayback = platform === "ios";
+    const defaultPlayback = shouldUseIOSPlayback
+      ? null
+      : await resolveDefaultPlayback(baseParams);
+    const defaultPlaybackParams = shouldUseIOSPlayback
+      ? baseParams
+      : defaultPlayback.params;
+    const playAuthToken = vodService.GetPlayAuthToken(
+      defaultPlaybackParams,
+      3600,
+    );
+    const iosPlayback = shouldUseIOSPlayback
+      ? await resolveIOSPlayback(baseParams)
+      : null;
+    const iosPlayAuthToken = iosPlayback
+      ? vodService.GetPlayAuthToken(iosPlayback.params, 3600)
+      : "";
 
     try {
       const subtitleRes = await vodService.GetSubtitleInfoList({
@@ -211,10 +311,23 @@ export async function GET(request) {
 
     return NextResponse.json({
       playAuthToken,
-      playDomain: "",
+      ...(shouldUseIOSPlayback
+        ? {
+            iosPlayAuthToken,
+            iosPlaybackSource: iosPlayback.source,
+            iosPlaybackUrl: iosPlayback.playbackUrl,
+            iosPlaybackStreamType: iosPlayback.streamType,
+            preferredPlaybackSource: iosPlayback.playbackUrl,
+            preferredPlaybackStreamType: iosPlayback.streamType,
+          }
+        : {
+            defaultPlaybackSource: defaultPlayback.source,
+            preferredPlaybackSource: defaultPlayback.playbackUrl,
+            preferredPlaybackStreamType: defaultPlayback.streamType,
+          }
+      ),
+      playDomain: process.env.BYTEPLUS_VOD_PLAY_DOMAIN || "",
       subtitles,
-      playbackSources,
-      preferredPlaybackSource: preferredSource?.url || "",
     });
   } catch (error) {
     console.error("Error generating play auth token:", error);
