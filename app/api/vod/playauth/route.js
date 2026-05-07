@@ -77,6 +77,7 @@ const IOS_COMPATIBLE_PLAYBACK_CANDIDATES = [
   { FileType: "video", Format: "hls", Codec: "H264", Ssl: "1" },
   { FileType: "video", Format: "mp4", Codec: "H264", Ssl: "1" },
 ];
+const DEFAULT_PLAY_DOMAIN = "vod.minchapseries.com";
 const DEFAULT_PLAYBACK_PARAMS = { FileType: "video", Format: "webm", Ssl: "1" };
 const DEFAULT_PLAYBACK_CANDIDATES = [
   { FileType: "video", Format: "webm", Ssl: "1" },
@@ -244,6 +245,7 @@ export async function GET(request) {
     const baseParams = {
       Vid: vid,
       ...(spaceName ? { SpaceName: spaceName } : {}),
+      PlayDomain: process.env.BYTEPLUS_VOD_PLAY_DOMAIN || DEFAULT_PLAY_DOMAIN,
     };
 
     let subtitles = [];
@@ -326,7 +328,7 @@ export async function GET(request) {
             preferredPlaybackSource: defaultPlayback.playbackUrl,
             preferredPlaybackStreamType: defaultPlayback.streamType,
           }),
-      playDomain: process.env.BYTEPLUS_VOD_PLAY_DOMAIN || "",
+      playDomain: process.env.BYTEPLUS_VOD_PLAY_DOMAIN || DEFAULT_PLAY_DOMAIN,
       subtitles,
     });
   } catch (error) {
