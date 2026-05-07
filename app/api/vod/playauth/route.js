@@ -164,6 +164,7 @@ async function resolveDefaultPlayback(baseParams) {
         ...baseParams,
         ...candidate,
       });
+
       const playInfoList = getPlayInfoList(playInfoRes);
 
       if (playInfoList.length > 0) {
@@ -247,16 +248,22 @@ export async function GET(request) {
 
     let subtitles = [];
     const shouldUseIOSPlayback = platform === "ios";
-    const iosPlayback = shouldUseIOSPlayback
-      ? await resolveIOSPlayback(baseParams)
-      : null;
     const defaultPlayback = shouldUseIOSPlayback
       ? null
       : await resolveDefaultPlayback(baseParams);
-    const playbackParams = shouldUseIOSPlayback
-      ? iosPlayback.params
+    const defaultPlaybackParams = shouldUseIOSPlayback
+      ? baseParams
       : defaultPlayback.params;
-    const playAuthToken = vodService.GetPlayAuthToken(playbackParams, 3600);
+    const playAuthToken = vodService.GetPlayAuthToken(
+      defaultPlaybackParams,
+      3600,
+    );
+    const iosPlayback = shouldUseIOSPlayback
+      ? await resolveIOSPlayback(baseParams)
+      : null;
+    const iosPlayAuthToken = iosPlayback
+      ? vodService.GetPlayAuthToken(iosPlayback.params, 3600)
+      : "";
 
     try {
       const subtitleRes = await vodService.GetSubtitleInfoList({
@@ -307,12 +314,12 @@ export async function GET(request) {
       playAuthToken,
       ...(shouldUseIOSPlayback
         ? {
-            iosPlayAuthToken: playAuthToken,
+            iosPlayAuthToken,
             iosPlaybackSource: iosPlayback.source,
             iosPlaybackUrl: iosPlayback.playbackUrl,
             iosPlaybackStreamType: iosPlayback.streamType,
-            preferredPlaybackSource: "",
-            preferredPlaybackStreamType: "",
+            preferredPlaybackSource: iosPlayback.playbackUrl,
+            preferredPlaybackStreamType: iosPlayback.streamType,
           }
         : {
             defaultPlaybackSource: defaultPlayback.source,
