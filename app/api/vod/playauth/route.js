@@ -68,6 +68,66 @@ function getSubtitleListForVid(subtitleRes, vid) {
   );
 }
 
+const IOS_COMPATIBLE_PLAYBACK_CANDIDATES = [
+  { FileType: "video", Format: "hls", Codec: "H264", Ssl: "1" },
+  { FileType: "video", Format: "mp4", Codec: "H264", Ssl: "1" },
+];
+
+function getPlayInfoList(playInfoRes) {
+  const playInfoList =
+    playInfoRes?.Result?.PlayInfoList || playInfoRes?.PlayInfoList || [];
+
+  return Array.isArray(playInfoList) ? playInfoList : [];
+}
+
+async function resolvePlaybackParams(baseParams) {
+  for (const candidate of IOS_COMPATIBLE_PLAYBACK_CANDIDATES) {
+    try {
+      const playInfoRes = await vodService.GetPlayInfo({
+        ...baseParams,
+        ...candidate,
+      });
+      const playInfoList = getPlayInfoList(playInfoRes);
+
+      if (playInfoList.length > 0) {
+        return {
+          params: { ...baseParams, ...candidate },
+          source: {
+            requestedFormat: candidate.Format,
+            requestedCodec: candidate.Codec,
+            selectedFormat: playInfoList[0]?.Format || "",
+            selectedCodec: playInfoList[0]?.Codec || "",
+            selectedDefinition: playInfoList[0]?.Definition || "",
+            availableCount: playInfoList.length,
+          },
+        };
+      }
+    } catch (error) {
+      console.error("Error resolving BytePlus playback candidate:", {
+        vid: baseParams.Vid,
+        format: candidate.Format,
+        codec: candidate.Codec,
+        error,
+      });
+    }
+  }
+
+  return {
+    params: {
+      ...baseParams,
+      ...IOS_COMPATIBLE_PLAYBACK_CANDIDATES[0],
+    },
+    source: {
+      requestedFormat: IOS_COMPATIBLE_PLAYBACK_CANDIDATES[0].Format,
+      requestedCodec: IOS_COMPATIBLE_PLAYBACK_CANDIDATES[0].Codec,
+      selectedFormat: "",
+      selectedCodec: "",
+      selectedDefinition: "",
+      availableCount: 0,
+    },
+  };
+}
+
 export async function GET(request) {
   const searchParams = request.nextUrl.searchParams;
   const vid = (searchParams.get("vid") || "").trim();
@@ -100,8 +160,9 @@ export async function GET(request) {
       Vid: vid,
       ...(spaceName ? { SpaceName: spaceName } : {}),
     };
+    const playback = await resolvePlaybackParams(baseParams);
 
-    const playAuthToken = vodService.GetPlayAuthToken(baseParams, 3600);
+    const playAuthToken = vodService.GetPlayAuthToken(playback.params, 3600);
     let subtitles = [];
 
     try {
@@ -152,6 +213,7 @@ export async function GET(request) {
     return NextResponse.json({
       playAuthToken,
       playDomain: process.env.BYTEPLUS_VOD_PLAY_DOMAIN || "",
+      playbackSource: playback.source,
       subtitles,
     });
   } catch (error) {

@@ -1232,19 +1232,19 @@ export default function WatchPage() {
 
       {showPlayer && vipLockedEpisode ? (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/62 px-4 backdrop-blur-[2px]">
-          <div className="relative w-full max-w-[360px] overflow-hidden rounded-[18px] border border-[#C15CFF] bg-[#12051F] px-7 pb-7 pt-6 text-white shadow-[0_0_34px_rgba(193,92,255,0.34)]">
+          <div className="relative w-full max-w-[310px] overflow-hidden rounded-2xl border border-[#C15CFF] bg-[#12051F] px-5 pb-5 pt-5 text-white shadow-[0_0_30px_rgba(193,92,255,0.3)]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(138,43,226,0.34),transparent_36%),radial-gradient(circle_at_88%_18%,rgba(193,92,255,0.2),transparent_24%)]" />
             <div className="relative flex flex-col items-center text-center">
-              <h2 className="text-[28px] font-semibold leading-none tracking-normal">
+              <h2 className="text-[23px] font-semibold leading-none tracking-normal">
                 MinChap <span className="text-[#B85CFF]">VIP</span>
               </h2>
               <img
                 src="/popcorn.svg"
                 alt=""
                 aria-hidden="true"
-                className="mt-3 h-[78px] w-[78px] object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.45)]"
+                className="mt-2.5 h-[58px] w-[58px] object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.42)]"
               />
-              <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-[#B85CFF]/70 bg-[#6F2CB8]/35 px-4 py-1.5 text-[13px] font-medium text-[#E5C6FF]">
+              <div className="mt-2.5 inline-flex items-center gap-1 rounded-full border border-[#B85CFF]/70 bg-[#6F2CB8]/35 px-3 py-1 text-[12px] font-medium text-[#E5C6FF]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="13"
@@ -1263,16 +1263,16 @@ export default function WatchPage() {
                 ตอนที่ {vipLockedEpisode.episode_no} • VIP เท่านั้น
               </div>
 
-              <div className="mt-5 text-[34px] font-bold leading-none">
+              <div className="mt-4 text-[27px] font-bold leading-none">
                 ดูต่อด้วย <span className="text-[#B85CFF]">VIP</span>
               </div>
-              <p className="mt-2 text-[18px] font-medium leading-6 text-[#D3B8F5]">
+              <p className="mt-1.5 text-[15px] font-medium leading-5 text-[#D3B8F5]">
                 คุณดูฟรีครบ 10 ตอนแล้ว
               </p>
 
-              <div className="mt-6 grid w-full gap-3 text-left text-[16px] text-white/92">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#B85CFF] text-[#B85CFF]">
+              <div className="mt-5 grid w-full gap-2.5 text-left text-[14px] text-white/92">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#B85CFF] text-[#B85CFF]">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="16"
@@ -1286,14 +1286,14 @@ export default function WatchPage() {
                   </span>
                   ดูต่อได้ทันที
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#B85CFF] text-[13px] font-bold text-[#B85CFF]">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#B85CFF] text-[11px] font-bold text-[#B85CFF]">
                     AD
                   </span>
                   ไม่มีโฆษณา
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="flex h-8 w-8 items-center justify-center text-[#B85CFF]">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center text-[#B85CFF]">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="28"
@@ -1316,18 +1316,18 @@ export default function WatchPage() {
                 </div>
               </div>
 
-              <div className="mt-7 grid w-full grid-cols-2 gap-4">
+              <div className="mt-5 grid w-full grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setVipLockedEpisode(null)}
-                  className="h-[58px] rounded-xl border border-white/28 bg-black/18 text-[16px] font-medium text-white/90 active:scale-95"
+                  className="h-[48px] rounded-xl border border-white/28 bg-black/18 text-[14px] font-medium text-white/90 active:scale-95"
                 >
                   ไว้ทีหลัง
                 </button>
                 <button
                   type="button"
                   onClick={() => router.push("/app/vip")}
-                  className="h-[58px] rounded-xl bg-gradient-to-br from-[#B653FF] to-[#7C35FF] text-[16px] font-semibold text-white shadow-[0_0_24px_rgba(184,92,255,0.48)] active:scale-95"
+                  className="h-[48px] rounded-xl bg-gradient-to-br from-[#B653FF] to-[#7C35FF] text-[14px] font-semibold text-white shadow-[0_0_22px_rgba(184,92,255,0.44)] active:scale-95"
                 >
                   สมัคร VIP
                 </button>
