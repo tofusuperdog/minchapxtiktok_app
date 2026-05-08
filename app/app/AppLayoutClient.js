@@ -1,13 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LanguageProvider, useLanguage } from "./LanguageContext";
-import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
+import { useState, useRef } from "react";
 import MagicTrail from "../MagicTrail";
+import { useClickOutside } from "./hooks/useClickOutside";
 
-// Simple Share Modal Component
+const LANGUAGES = ["TH", "EN", "JP", "CN"];
+const HEADER_HIDDEN_PATHS = new Set([
+  "/app/vip",
+  "/app/contact",
+  "/app/policy",
+  "/app/terms",
+  "/app/faq",
+  "/app/topup",
+  "/app/bill",
+]);
+const PROFILE_SECTION_PATHS = new Set([
+  "/app/profile",
+  "/app/bill",
+  "/app/faq",
+  "/app/terms",
+  "/app/policy",
+  "/app/contact",
+]);
+
+function isDetailPage(pathname) {
+  return (
+    pathname.startsWith("/app/watch/") ||
+    pathname.startsWith("/app/category/") ||
+    pathname.startsWith("/app/genre/")
+  );
+}
+
 function ShareModal({ isOpen, onClose, t }) {
   if (!isOpen) return null;
 
@@ -23,7 +49,6 @@ function ShareModal({ isOpen, onClose, t }) {
         
         <div className="flex flex-col items-center pt-2 pb-4 text-center">
           <div className="mb-4 h-16 w-16 rounded-full bg-gradient-to-tr from-pink-500 to-indigo-500 flex items-center justify-center">
-            {/* Simple TikTok SVG Icon for the modal */}
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
           </div>
           <h3 className="text-lg font-bold text-white mb-2">{t("share_tiktok")}</h3>
@@ -41,28 +66,15 @@ function ShareModal({ isOpen, onClose, t }) {
   );
 }
 
-// Inner structure so we can use Context hooks
 function LayoutContent({ children }) {
   const { language, changeLanguage, t } = useLanguage();
   const pathname = usePathname();
-  const router = useRouter();
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const languages = ["TH", "EN", "JP", "CN"];
+  useClickOutside(dropdownRef, () => setIsDropdownOpen(false));
 
   const navItems = [
     { path: "/app", label: t("home"), icon: "/home.svg", iconActive: "/home_selected.svg" },
@@ -71,36 +83,13 @@ function LayoutContent({ children }) {
     { path: "/app/profile", label: t("profile"), icon: "/profile.svg", iconActive: "/profile_selected.svg" },
   ];
 
-  const isVipPage = pathname === "/app/vip";
-  const isContactPage = pathname === "/app/contact";
-  const isPolicyPage = pathname === "/app/policy";
-  const isTermsPage = pathname === "/app/terms";
-  const isFaqPage = pathname === "/app/faq";
   const isTopupPage = pathname === "/app/topup";
-  const isBillPage = pathname === "/app/bill";
   const isWatchPage = pathname.startsWith("/app/watch/");
   const isCategoryPage = pathname.startsWith("/app/category/");
   const isGenrePage = pathname.startsWith("/app/genre/");
-  const profileSectionPaths = [
-    "/app/profile",
-    "/app/bill",
-    "/app/faq",
-    "/app/terms",
-    "/app/policy",
-    "/app/contact",
-  ];
-  const isProfileSectionPage = profileSectionPaths.includes(pathname);
-  const showHeader =
-    !isVipPage &&
-    !isContactPage &&
-    !isPolicyPage &&
-    !isTermsPage &&
-    !isFaqPage &&
-    !isTopupPage &&
-    !isBillPage &&
-    !isWatchPage &&
-    !isCategoryPage &&
-    !isGenrePage;
+  const isVipPage = pathname === "/app/vip";
+  const isProfileSectionPage = PROFILE_SECTION_PATHS.has(pathname);
+  const showHeader = !HEADER_HIDDEN_PATHS.has(pathname) && !isDetailPage(pathname);
 
   return (
     <div className="relative flex min-h-screen bg-black">
@@ -132,7 +121,7 @@ function LayoutContent({ children }) {
 
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-20 rounded-lg bg-[#1A1A1A] shadow-lg border border-white/10 py-1 flex flex-col z-50">
-                    {languages.map((lang) => (
+                    {LANGUAGES.map((lang) => (
                       <button
                         key={lang}
                         onClick={() => {

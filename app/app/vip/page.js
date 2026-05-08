@@ -4,6 +4,8 @@ import { useLanguage } from "../LanguageContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../../lib/supabase";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 export default function VipPage() {
   const { t, language, changeLanguage } = useLanguage();
@@ -16,19 +18,13 @@ export default function VipPage() {
   const langDropdownRef = useRef(null);
   const languages = ["TH", "EN", "JP", "CN"];
 
-  const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
-
   useEffect(() => {
     async function fetchPackages() {
       try {
         const response = await fetch(
-          `${SUPABASE_URL}/rest/v1/vip_package?select=*&order=sort_order`,
+          supabaseRestUrl("vip_package?select=*&order=sort_order"),
           {
-            headers: {
-              apikey: SUPABASE_ANON_KEY,
-              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-            },
+            headers: SUPABASE_HEADERS,
           },
         );
         const data = await response.json();
@@ -42,19 +38,7 @@ export default function VipPage() {
     fetchPackages();
   }, []);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (
-        langDropdownRef.current &&
-        !langDropdownRef.current.contains(event.target)
-      ) {
-        setIsLangOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(langDropdownRef, () => setIsLangOpen(false));
 
   const benefits = [
     { id: 1, text: t("no_ads") },

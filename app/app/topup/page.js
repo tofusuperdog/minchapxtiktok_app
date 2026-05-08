@@ -4,8 +4,8 @@ import { useLanguage } from "../LanguageContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-
-// BeanIcon replaced by bean.svg in public folder
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../../lib/supabase";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 export default function TopupPage() {
   const { t, language, changeLanguage } = useLanguage();
@@ -15,16 +15,7 @@ export default function TopupPage() {
   const langDropdownRef = useRef(null);
   const languages = ["TH", "EN", "JP", "CN"];
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target)) {
-        setIsLangOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(langDropdownRef, () => setIsLangOpen(false));
 
   const [episodes, setEpisodes] = useState([]);
   const [vipPackages, setVipPackages] = useState([]);
@@ -33,30 +24,18 @@ export default function TopupPage() {
   const [selectedEpisodePackage, setSelectedEpisodePackage] = useState(null);
   const [selectedVipPackage, setSelectedVipPackage] = useState(null);
 
-  const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
-
   useEffect(() => {
     async function fetchData() {
       try {
-        const fetchEpisodes = fetch(`${SUPABASE_URL}/rest/v1/episode_package?select=*&show_price=eq.true&order=sort_order`, {
-          headers: {
-             "apikey": SUPABASE_ANON_KEY,
-             "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
-          }
+        const fetchEpisodes = fetch(supabaseRestUrl("episode_package?select=*&show_price=eq.true&order=sort_order"), {
+          headers: SUPABASE_HEADERS,
         });
-        const fetchVip = fetch(`${SUPABASE_URL}/rest/v1/vip_package?select=*&order=sort_order`, {
-          headers: {
-             "apikey": SUPABASE_ANON_KEY,
-             "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
-          }
+        const fetchVip = fetch(supabaseRestUrl("vip_package?select=*&order=sort_order"), {
+          headers: SUPABASE_HEADERS,
         });
 
-        const fetchSettings = fetch(`${SUPABASE_URL}/rest/v1/app_settings?select=*&id=eq.1`, {
-          headers: {
-             "apikey": SUPABASE_ANON_KEY,
-             "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
-          }
+        const fetchSettings = fetch(supabaseRestUrl("app_settings?select=*&id=eq.1"), {
+          headers: SUPABASE_HEADERS,
         });
 
         const [episodesRes, vipRes, settingsRes] = await Promise.all([fetchEpisodes, fetchVip, fetchSettings]);

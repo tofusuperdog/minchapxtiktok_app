@@ -4,6 +4,7 @@ import { useLanguage } from "./LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../lib/supabase";
 
 export default function AppHome() {
   const { t, language } = useLanguage();
@@ -17,19 +18,13 @@ export default function AppHome() {
   const [sections, setSections] = useState([]);
   const [loadingSections, setLoadingSections] = useState(true);
 
-  const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
-
-  const headers = {
-    "apikey": SUPABASE_ANON_KEY,
-    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-  };
+  const headers = SUPABASE_HEADERS;
 
   useEffect(() => {
     async function fetchBanners() {
       try {
         const bannerRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/main_banner?select=id,series_id&order=id`,
+          supabaseRestUrl("main_banner?select=id,series_id&order=id"),
           { headers }
         );
         const bannersData = await bannerRes.json();
@@ -38,7 +33,9 @@ export default function AppHome() {
         if (seriesIds.length === 0) return;
 
         const seriesRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/series?select=id,title_th,title_en,title_jp,title_cn,poster_url&id=in.(${seriesIds.join(",")})`,
+          supabaseRestUrl(
+            `series?select=id,title_th,title_en,title_jp,title_cn,poster_url&id=in.(${seriesIds.join(",")})`,
+          ),
           { headers }
         );
         const seriesData = await seriesRes.json();
@@ -73,7 +70,9 @@ export default function AppHome() {
     async function fetchSections() {
       try {
         const catRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/content_categories?select=*&is_published=eq.true&order=sort_order`,
+          supabaseRestUrl(
+            "content_categories?select=*&is_published=eq.true&order=sort_order",
+          ),
           { headers }
         );
         const categories = await catRes.json();
@@ -83,7 +82,7 @@ export default function AppHome() {
         const promises = categories.map(async (cat) => {
           if (cat.name === "อันดับยอดนิยม") {
             const topRes = await fetch(
-              `${SUPABASE_URL}/rest/v1/top_series?select=rank,series_id&order=rank&limit=10`,
+              supabaseRestUrl("top_series?select=rank,series_id&order=rank&limit=10"),
               { headers }
             );
             const topData = await topRes.json();
@@ -100,7 +99,9 @@ export default function AppHome() {
           } else if (cat.name === "ซีรีส์พากย์ตามภาษา") {
             const currentLangCode = language.toLowerCase();
             const langRes = await fetch(
-              `${SUPABASE_URL}/rest/v1/dubbed_languages?select=*&is_published=eq.true&code=eq.${currentLangCode}`,
+              supabaseRestUrl(
+                `dubbed_languages?select=*&is_published=eq.true&code=eq.${currentLangCode}`,
+              ),
               { headers }
             );
             const langsData = await langRes.json();
@@ -108,7 +109,9 @@ export default function AppHome() {
             if (langsData.length > 0) {
               const lang = langsData[0];
               const sr = await fetch(
-                `${SUPABASE_URL}/rest/v1/series?select=id&dub_${lang.code}=eq.true&limit=30`,
+                supabaseRestUrl(
+                  `series?select=id&dub_${lang.code}=eq.true&limit=30`,
+                ),
                 { headers }
               );
               const sdata = await sr.json();
@@ -150,14 +153,14 @@ export default function AppHome() {
         
         // Fetch Genres
         const genreRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/genre?select=*&is_published=eq.true&order=sort_order`,
+          supabaseRestUrl("genre?select=*&is_published=eq.true&order=sort_order"),
           { headers }
         );
         const genres = await genreRes.json();
         
         const genrePromises = genres.map(async (g) => {
           const srRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/series?select=id&genre_ids=cs.{${g.id}}&limit=50`,
+            supabaseRestUrl(`series?select=id&genre_ids=cs.{${g.id}}&limit=50`),
             { headers }
           );
           const sdata = await srRes.json();
@@ -189,7 +192,9 @@ export default function AppHome() {
         const seriesMap = {};
         if (idsArr.length > 0) {
           const seriesRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/series?select=id,title_th,title_en,title_jp,title_cn,poster_url&id=in.(${idsArr.join(",")})`,
+            supabaseRestUrl(
+              `series?select=id,title_th,title_en,title_jp,title_cn,poster_url&id=in.(${idsArr.join(",")})`,
+            ),
             { headers }
           );
           const seriesData = await seriesRes.json();

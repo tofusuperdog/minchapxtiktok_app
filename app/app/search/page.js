@@ -3,14 +3,9 @@
 import { useLanguage } from "../LanguageContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../../lib/supabase";
 
-const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
-
-const headers = {
-  "apikey": SUPABASE_ANON_KEY,
-  "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-};
+const headers = SUPABASE_HEADERS;
 
 function formatViews(num) {
   if (!num) return "0";
@@ -35,7 +30,7 @@ export default function AppSearch() {
       try {
         // 1) Fetch top_series (rank 1-6)
         const topRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/top_series?select=rank,series_id&order=rank&limit=6`,
+          supabaseRestUrl("top_series?select=rank,series_id&order=rank&limit=6"),
           { headers }
         );
         const topData = await topRes.json();
@@ -45,14 +40,18 @@ export default function AppSearch() {
 
         // 2) Fetch series details
         const seriesRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/series?select=id,title_th,title_en,title_jp,title_cn,poster_url&id=in.(${seriesIds.join(",")})`,
+          supabaseRestUrl(
+            `series?select=id,title_th,title_en,title_jp,title_cn,poster_url&id=in.(${seriesIds.join(",")})`,
+          ),
           { headers }
         );
         const seriesData = await seriesRes.json();
 
         // 3) Fetch total views per series_id from series_daily_views
         const viewsRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/series_daily_views?select=series_id,views_th,views_en,views_jp,views_cn&series_id=in.(${seriesIds.join(",")})`,
+          supabaseRestUrl(
+            `series_daily_views?select=series_id,views_th,views_en,views_jp,views_cn&series_id=in.(${seriesIds.join(",")})`,
+          ),
           { headers }
         );
         const viewsData = await viewsRes.json();
@@ -98,7 +97,9 @@ export default function AppSearch() {
       setSearching(true);
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/series?select=id,title_th,title_en,title_jp,title_cn,poster_url&or=(title_th.ilike.*${encodeURIComponent(query)}*,title_en.ilike.*${encodeURIComponent(query)}*,title_jp.ilike.*${encodeURIComponent(query)}*,title_cn.ilike.*${encodeURIComponent(query)}*)&limit=20`,
+          supabaseRestUrl(
+            `series?select=id,title_th,title_en,title_jp,title_cn,poster_url&or=(title_th.ilike.*${encodeURIComponent(query)}*,title_en.ilike.*${encodeURIComponent(query)}*,title_jp.ilike.*${encodeURIComponent(query)}*,title_cn.ilike.*${encodeURIComponent(query)}*)&limit=20`,
+          ),
           { headers }
         );
         const data = await res.json();

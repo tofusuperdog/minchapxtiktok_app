@@ -10,18 +10,14 @@ import {
 } from "react";
 import { useLanguage } from "../../LanguageContext";
 import { useParams, useRouter } from "next/navigation";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../../../lib/supabase";
 
-const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
 const BYTEPLUS_LICENSE =
   process.env.NEXT_PUBLIC_BYTEPLUS_LICENSE ||
   "https://sf16-vod-license-multi.byteplusvod.com/obj/vod-license-sgcom/l-1122314769-ch-vod-a-1006938.lic";
 const SUBTITLE_OFFSET_BOTTOM_PERCENT = 25;
 
-const headers = {
-  apikey: SUPABASE_ANON_KEY,
-  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-};
+const headers = SUPABASE_HEADERS;
 
 const getSubtitleId = (sub, idx) =>
   String(sub?.id || sub?.language || sub?.text || idx);
@@ -965,11 +961,15 @@ export default function WatchPage() {
       try {
         const [episodeResponse, seriesResponse] = await Promise.all([
           fetch(
-            `${SUPABASE_URL}/rest/v1/episode?select=id,series_id,episode_no,video_url,is_free&series_id=eq.${encodeURIComponent(seriesId)}&order=episode_no.asc`,
+            supabaseRestUrl(
+              `episode?select=id,series_id,episode_no,video_url,is_free&series_id=eq.${encodeURIComponent(seriesId)}&order=episode_no.asc`,
+            ),
             { headers },
           ),
           fetch(
-            `${SUPABASE_URL}/rest/v1/series?select=title_th,title_en,title_jp,title_cn&id=eq.${encodeURIComponent(seriesId)}&limit=1`,
+            supabaseRestUrl(
+              `series?select=title_th,title_en,title_jp,title_cn&id=eq.${encodeURIComponent(seriesId)}&limit=1`,
+            ),
             { headers },
           ),
         ]);

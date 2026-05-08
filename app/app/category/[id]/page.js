@@ -4,6 +4,8 @@ import { useLanguage } from "../../LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../../../lib/supabase";
+import { useClickOutside } from "../../hooks/useClickOutside";
 
 export default function CategoryDetail() {
   const { language, t, changeLanguage } = useLanguage();
@@ -17,23 +19,9 @@ export default function CategoryDetail() {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const langDropdownRef = useRef(null);
 
-  const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
-  
-  const headers = {
-    "apikey": SUPABASE_ANON_KEY,
-    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-  };
+  const headers = SUPABASE_HEADERS;
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target)) {
-        setIsLangOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(langDropdownRef, () => setIsLangOpen(false));
 
   useEffect(() => {
     async function fetchData() {
@@ -42,7 +30,10 @@ export default function CategoryDetail() {
       try {
         setLoading(true);
         // Fetch Category
-        const catRes = await fetch(`${SUPABASE_URL}/rest/v1/content_categories?select=*&id=eq.${id}`, { headers });
+        const catRes = await fetch(
+          supabaseRestUrl(`content_categories?select=*&id=eq.${id}`),
+          { headers },
+        );
         
         if (!catRes.ok) {
           const errText = await catRes.text();
@@ -67,7 +58,9 @@ export default function CategoryDetail() {
         if (cat.name === "ซีรีส์พากย์ตามภาษา" || cat.id === "feacb8fe-2f7d-4e35-afae-4cdb8bc6e069") {
           const currentLangCode = language.toLowerCase();
           const srRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/series?select=id,title_th,title_en,title_jp,title_cn,poster_url&dub_${currentLangCode}=eq.true&order=id.desc`,
+            supabaseRestUrl(
+              `series?select=id,title_th,title_en,title_jp,title_cn,poster_url&dub_${currentLangCode}=eq.true&order=id.desc`,
+            ),
             { headers }
           );
           if (!srRes.ok) throw new Error(`Series fetch failed: ${srRes.status}`);
@@ -76,7 +69,9 @@ export default function CategoryDetail() {
           // Normal category using series_ids from the row
           if (cat.series_ids && cat.series_ids.length > 0) {
             const seriesRes = await fetch(
-              `${SUPABASE_URL}/rest/v1/series?select=id,title_th,title_en,title_jp,title_cn,poster_url&id=in.(${cat.series_ids.join(",")})`,
+              supabaseRestUrl(
+                `series?select=id,title_th,title_en,title_jp,title_cn,poster_url&id=in.(${cat.series_ids.join(",")})`,
+              ),
               { headers }
             );
             if (!seriesRes.ok) throw new Error(`Series fetch failed: ${seriesRes.status}`);

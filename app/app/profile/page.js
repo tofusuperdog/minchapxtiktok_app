@@ -3,29 +3,26 @@
 import { useLanguage } from "../LanguageContext";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../../lib/supabase";
 
 export default function AppProfile() {
   const { language, t } = useLanguage();
   const [isVipActive, setIsVipActive] = useState(true);
   const [version, setVersion] = useState("1.01");
 
-  const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
-
-  const headers = {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-  };
+  const headers = SUPABASE_HEADERS;
 
   useEffect(() => {
     async function fetchData() {
       try {
         const fetchVersion = fetch(
-          `${SUPABASE_URL}/rest/v1/system_versions?system_type=eq.app&select=version_number&order=release_date.desc&limit=1`,
+          supabaseRestUrl(
+            "system_versions?system_type=eq.app&select=version_number&order=release_date.desc&limit=1",
+          ),
           { headers },
         );
         const fetchSettings = fetch(
-          `${SUPABASE_URL}/rest/v1/app_settings?select=*&id=eq.1`,
+          supabaseRestUrl("app_settings?select=*&id=eq.1"),
           { headers },
         );
 

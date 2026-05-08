@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 import vod from "@byteplus/vcloud-sdk-nodejs";
+import {
+  DEFAULT_PLAY_DOMAIN,
+  shouldUseHlsProxy,
+  signCdnUrl,
+} from "../../../lib/byteplusCdn";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,7 +79,6 @@ function getSubtitleListForVid(subtitleRes, vid) {
   );
 }
 
-const DEFAULT_PLAY_DOMAIN = "vod.minchapseries.com";
 const DEFAULT_PLAYBACK_PARAMS = {
   FileType: "video",
   Format: "hls",
@@ -123,66 +126,6 @@ function getHlsProxyUrl(playbackUrl, origin = "") {
   if (!playbackUrl) return "";
 
   return `${origin}/api/vod/hls?url=${encodeURIComponent(playbackUrl)}`;
-}
-
-function getCdnSigningKey() {
-  return (
-    process.env.BYTEPLUS_CDN_AUTH_KEY ||
-    process.env.BYTEPLUS_URL_SIGNING_PRIMARY_KEY ||
-    process.env.BYTEPLUS_URL_SIGNING_KEY ||
-    ""
-  ).trim();
-}
-
-function getCdnSigningParameterName() {
-  return (process.env.BYTEPLUS_CDN_AUTH_PARAM || "auth_key").trim();
-}
-
-function getCdnSigningRand() {
-  return (
-    process.env.BYTEPLUS_CDN_AUTH_RAND || crypto.randomBytes(16).toString("hex")
-  ).trim();
-}
-
-function getCdnSigningUid() {
-  return (process.env.BYTEPLUS_CDN_AUTH_UID || "0").trim();
-}
-
-function signCdnUrl(playbackUrl) {
-  const signingKey = getCdnSigningKey();
-
-  if (!playbackUrl || !signingKey) return playbackUrl;
-
-  const signedUrl = new URL(playbackUrl);
-  const signingParameterName = getCdnSigningParameterName();
-
-  signedUrl.searchParams.delete(signingParameterName);
-
-  const timestamp = Math.floor(Date.now() / 1000);
-  const rand = getCdnSigningRand();
-  const uid = getCdnSigningUid();
-  const uri = signedUrl.pathname;
-  const token = crypto
-    .createHash("md5")
-    .update(`${uri}-${timestamp}-${rand}-${uid}-${signingKey}`)
-    .digest("hex");
-
-  signedUrl.searchParams.set(
-    signingParameterName,
-    `${timestamp}-${rand}-${uid}-${token}`,
-  );
-
-  return signedUrl.href;
-}
-
-function shouldUseHlsProxy() {
-  return (
-    String(
-      process.env.BYTEPLUS_USE_HLS_PROXY ||
-        process.env.NEXT_PUBLIC_USE_HLS_PROXY ||
-        "",
-    ).toLowerCase() === "true"
-  );
 }
 
 async function resolveDefaultPlayback(baseParams) {

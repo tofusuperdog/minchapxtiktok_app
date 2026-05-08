@@ -2,8 +2,9 @@
 
 import { useLanguage } from "../LanguageContext";
 import { useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 export default function ContactPage() {
   const { t, language, changeLanguage } = useLanguage();
@@ -13,19 +14,7 @@ export default function ContactPage() {
   const langDropdownRef = useRef(null);
   const languages = ["TH", "EN", "JP", "CN"];
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (
-        langDropdownRef.current &&
-        !langDropdownRef.current.contains(event.target)
-      ) {
-        setIsLangOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(langDropdownRef, () => setIsLangOpen(false));
 
   return (
     <div className="flex flex-col w-full min-h-[calc(100vh-70px)] overflow-y-auto text-white bg-black pt-[60px]">

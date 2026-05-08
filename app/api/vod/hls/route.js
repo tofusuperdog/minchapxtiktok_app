@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
+import { signCdnUrl } from "../../../lib/byteplusCdn";
 
 export const dynamic = "force-dynamic";
 
@@ -19,53 +19,6 @@ function isAllowedHlsUrl(url) {
       hostname.endsWith(`.${allowedHost}`),
     )
   );
-}
-
-function getCdnSigningKey() {
-  return (
-    process.env.BYTEPLUS_CDN_AUTH_KEY ||
-    process.env.BYTEPLUS_URL_SIGNING_PRIMARY_KEY ||
-    process.env.BYTEPLUS_URL_SIGNING_KEY ||
-    ""
-  ).trim();
-}
-
-function getCdnSigningParameterName() {
-  return (process.env.BYTEPLUS_CDN_AUTH_PARAM || "auth_key").trim();
-}
-
-function getCdnSigningRand() {
-  return (
-    process.env.BYTEPLUS_CDN_AUTH_RAND || crypto.randomBytes(16).toString("hex")
-  ).trim();
-}
-
-function getCdnSigningUid() {
-  return (process.env.BYTEPLUS_CDN_AUTH_UID || "0").trim();
-}
-
-function signCdnUrl(sourceUrl) {
-  const signingKey = getCdnSigningKey();
-
-  if (!sourceUrl || !signingKey) return sourceUrl;
-
-  const signedUrl = new URL(sourceUrl.href);
-  const signingParameterName = getCdnSigningParameterName();
-  const timestamp = Math.floor(Date.now() / 1000);
-  const rand = getCdnSigningRand();
-  const uid = getCdnSigningUid();
-  const token = crypto
-    .createHash("md5")
-    .update(`${signedUrl.pathname}-${timestamp}-${rand}-${uid}-${signingKey}`)
-    .digest("hex");
-
-  signedUrl.searchParams.delete(signingParameterName);
-  signedUrl.searchParams.set(
-    signingParameterName,
-    `${timestamp}-${rand}-${uid}-${token}`,
-  );
-
-  return signedUrl;
 }
 
 function getProxiedHlsUrl(url) {

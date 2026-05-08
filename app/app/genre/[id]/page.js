@@ -4,6 +4,8 @@ import { useLanguage } from "../../LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../../../lib/supabase";
+import { useClickOutside } from "../../hooks/useClickOutside";
 
 export default function GenreDetail() {
   const { language, t, changeLanguage } = useLanguage();
@@ -17,23 +19,9 @@ export default function GenreDetail() {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const langDropdownRef = useRef(null);
 
-  const SUPABASE_URL = "https://vxskkaxvlgycokdtuocj.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_EulroVhS18qjuuQ31ERKig_0memrNhJ";
-  
-  const headers = {
-    "apikey": SUPABASE_ANON_KEY,
-    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-  };
+  const headers = SUPABASE_HEADERS;
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target)) {
-        setIsLangOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(langDropdownRef, () => setIsLangOpen(false));
 
   useEffect(() => {
     async function fetchData() {
@@ -42,7 +30,10 @@ export default function GenreDetail() {
       try {
         setLoading(true);
         // Fetch Genre
-        const genreRes = await fetch(`${SUPABASE_URL}/rest/v1/genre?select=*&id=eq.${id}`, { headers });
+        const genreRes = await fetch(
+          supabaseRestUrl(`genre?select=*&id=eq.${id}`),
+          { headers },
+        );
         
         if (!genreRes.ok) {
           const errText = await genreRes.text();
@@ -61,7 +52,9 @@ export default function GenreDetail() {
 
         // Fetch Series with this genre
         const seriesRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/series?select=id,title_th,title_en,title_jp,title_cn,poster_url&genre_ids=cs.{${genre.id}}&order=id.desc`,
+          supabaseRestUrl(
+            `series?select=id,title_th,title_en,title_jp,title_cn,poster_url&genre_ids=cs.{${genre.id}}&order=id.desc`,
+          ),
           { headers }
         );
         if (!seriesRes.ok) throw new Error(`Series fetch failed: ${seriesRes.status}`);
