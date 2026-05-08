@@ -124,6 +124,16 @@ function getHlsProxyUrl(playbackUrl, origin = "") {
   return `${origin}/api/vod/hls?url=${encodeURIComponent(playbackUrl)}`;
 }
 
+function shouldUseHlsProxy() {
+  return (
+    String(
+      process.env.BYTEPLUS_USE_HLS_PROXY ||
+        process.env.NEXT_PUBLIC_USE_HLS_PROXY ||
+        "",
+    ).toLowerCase() === "true"
+  );
+}
+
 async function resolveDefaultPlayback(baseParams) {
   for (const candidate of DEFAULT_PLAYBACK_CANDIDATES) {
     try {
@@ -279,11 +289,15 @@ export async function GET(request) {
     return NextResponse.json(
       {
         defaultPlaybackSource: defaultPlayback.source,
-        preferredPlaybackSource: getHlsProxyUrl(
+        preferredPlaybackSource: shouldUseHlsProxy()
+          ? getHlsProxyUrl(defaultPlayback.playbackUrl, request.nextUrl.origin)
+          : defaultPlayback.playbackUrl,
+        directPlaybackSource: defaultPlayback.playbackUrl,
+        proxiedPlaybackSource: getHlsProxyUrl(
           defaultPlayback.playbackUrl,
           request.nextUrl.origin,
         ),
-        directPlaybackSource: defaultPlayback.playbackUrl,
+        isHlsProxyEnabled: shouldUseHlsProxy(),
         preferredPlaybackStreamType: defaultPlayback.streamType,
         playDomain: process.env.BYTEPLUS_VOD_PLAY_DOMAIN || DEFAULT_PLAY_DOMAIN,
         subtitles,
