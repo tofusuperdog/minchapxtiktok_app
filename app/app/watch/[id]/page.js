@@ -228,21 +228,6 @@ const isKnownVePlayerDevWarningArgs = (args) => {
   );
 };
 
-const isIOSWebKit = () => {
-  if (typeof navigator === "undefined") return false;
-
-  const userAgent = navigator.userAgent || "";
-  const video = document.createElement("video");
-  const supportsNativeHls =
-    typeof video.canPlayType === "function" &&
-    Boolean(
-      video.canPlayType("application/vnd.apple.mpegurl") ||
-        video.canPlayType("application/x-mpegURL"),
-    );
-
-  return /iPad|iPhone|iPod/i.test(userAgent) && supportsNativeHls;
-};
-
 function getLabels(language) {
   switch (language) {
     case "EN":
@@ -250,6 +235,9 @@ function getLabels(language) {
         loading: "Loading video",
         missing: "No video available",
         tokenError: "Unable to load video",
+        hlsMissingTitle: "HLS not available",
+        hlsMissing:
+          "This video does not have an HLS transcode yet. Please create the HLS transcode before playback.",
         back: "Back",
         favorite: "Favorite",
         list: "List",
@@ -262,6 +250,9 @@ function getLabels(language) {
         loading: "動画を読み込み中",
         missing: "動画がありません",
         tokenError: "動画を読み込めません",
+        hlsMissingTitle: "HLS not available",
+        hlsMissing:
+          "This video does not have an HLS transcode yet. Please create the HLS transcode before playback.",
         back: "戻る",
       };
     case "CN":
@@ -269,6 +260,9 @@ function getLabels(language) {
         loading: "正在加载视频",
         missing: "暂无视频",
         tokenError: "无法加载视频",
+        hlsMissingTitle: "HLS not available",
+        hlsMissing:
+          "This video does not have an HLS transcode yet. Please create the HLS transcode before playback.",
         back: "返回",
       };
     default:
@@ -276,6 +270,9 @@ function getLabels(language) {
         loading: "กำลังโหลดวิดีโอ",
         missing: "ยังไม่มีวิดีโอ",
         tokenError: "ไม่สามารถโหลดวิดีโอได้",
+        hlsMissingTitle: "HLS not available",
+        hlsMissing:
+          "วิดีโอนี้ยังไม่มี HLS transcode กรุณาสร้าง HLS transcode ก่อนเล่นวิดีโอ",
         back: "ย้อนกลับ",
       };
   }
@@ -321,10 +318,7 @@ function getWatchOverlayLabels(language) {
 const VePlayerComponent = forwardRef(function VePlayerComponent(
   {
     vid,
-    playAuthToken,
-    playbackUrl,
-    playbackStreamType,
-    playDomain,
+    playback,
     subtitles,
     activeSubtitle,
     onPausedChange,
@@ -447,7 +441,7 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
   }));
 
   useEffect(() => {
-    if (!containerRef.current || !vid || (!playAuthToken && !playbackUrl)) {
+    if (!containerRef.current || !vid || !playback?.url) {
       return;
     }
 
@@ -561,19 +555,10 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
 
         const playerConfig = {
           id: playerId,
-          ...(playbackUrl
-            ? {
-                vid,
-                url: playbackUrl,
-                streamType: playbackStreamType || "webm",
-              }
-            : {
-                vid,
-                getVideoByToken: {
-                  playAuthToken,
-                  ...(playDomain ? { playDomain } : {}),
-                },
-              }),
+          root: containerRef.current,
+          url: playback.url,
+          streamType: playback.streamType || "hls",
+          codec: playback.codec || "h264",
           lang: "en",
           width: "100%",
           height: "100%",
@@ -683,10 +668,7 @@ const VePlayerComponent = forwardRef(function VePlayerComponent(
     };
   }, [
     vid,
-    playAuthToken,
-    playbackUrl,
-    playbackStreamType,
-    playDomain,
+    playback,
     lineAppId,
     lineUserId,
     subtitles,
@@ -713,10 +695,7 @@ export default function WatchPage() {
   const [episode, setEpisode] = useState(null);
   const [episodes, setEpisodes] = useState([]);
   const [seriesTitle, setSeriesTitle] = useState("");
-  const [playAuthToken, setPlayAuthToken] = useState("");
-  const [playbackUrl, setPlaybackUrl] = useState("");
-  const [playbackStreamType, setPlaybackStreamType] = useState("");
-  const [playDomain, setPlayDomain] = useState("");
+  const [playback, setPlayback] = useState(null);
   const [subtitles, setSubtitles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEpisodeLoading, setIsEpisodeLoading] = useState(false);
@@ -728,6 +707,7 @@ export default function WatchPage() {
   const [isEpisodeMenuOpen, setIsEpisodeMenuOpen] = useState(false);
   const [activeEpisodeRangeStart, setActiveEpisodeRangeStart] = useState(1);
   const [vipLockedEpisode, setVipLockedEpisode] = useState(null);
+  const [playbackAlert, setPlaybackAlert] = useState(null);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return undefined;
@@ -818,53 +798,59 @@ export default function WatchPage() {
 
       setEpisode(targetEpisode);
       setError("");
-      setPlayAuthToken("");
-      setPlaybackUrl("");
-      setPlaybackStreamType("");
-      setPlayDomain("");
+      setPlayback(null);
       setSubtitles([]);
       setSelectedSubtitleId("");
       setActiveSubtitle(undefined);
       setVipLockedEpisode(null);
+      setPlaybackAlert(null);
 
       if (!vid) {
         setError(labels.missing);
         return false;
       }
 
-      const shouldUseIOSPlayback = isIOSWebKit();
       const playAuthResponse = await fetch(
-        `/api/vod/playauth?vid=${encodeURIComponent(vid)}${
-          shouldUseIOSPlayback ? "&platform=ios" : ""
-        }`,
+        `/api/vod/playauth?vid=${encodeURIComponent(vid)}`,
       );
       const playAuthData = await playAuthResponse.json();
 
-      if (!playAuthResponse.ok || !playAuthData.playAuthToken) {
-        setError(playAuthData.error || labels.tokenError);
+      const hlsPlaybackUrl = playAuthData.preferredPlaybackSource || "";
+
+      if (!playAuthResponse.ok || !hlsPlaybackUrl) {
+        const isHlsMissing =
+          playAuthData.code === "HLS_PLAYBACK_NOT_FOUND";
+        const message = isHlsMissing
+          ? labels.hlsMissing
+          : playAuthData.error || labels.tokenError;
+
+        setError(message);
+        if (isHlsMissing) {
+          setPlaybackAlert({
+            title: labels.hlsMissingTitle,
+            message,
+          });
+        }
         return false;
       }
 
-      setPlayAuthToken(
-        shouldUseIOSPlayback
-          ? playAuthData.iosPlayAuthToken || playAuthData.playAuthToken
-          : playAuthData.playAuthToken,
-      );
-      setPlaybackUrl(
-        shouldUseIOSPlayback ? "" : playAuthData.preferredPlaybackSource || "",
-      );
-      setPlaybackStreamType(
-        shouldUseIOSPlayback
-          ? ""
-          : playAuthData.preferredPlaybackStreamType || "",
-      );
-      setPlayDomain(playAuthData.playDomain || "");
+      setPlayback({
+        url: hlsPlaybackUrl,
+        streamType: playAuthData.preferredPlaybackStreamType || "hls",
+        codec: "h264",
+      });
       applyFetchedSubtitles(
         Array.isArray(playAuthData.subtitles) ? playAuthData.subtitles : [],
       );
       return true;
     },
-    [applyFetchedSubtitles, labels.missing, labels.tokenError],
+    [
+      applyFetchedSubtitles,
+      labels.hlsMissing,
+      labels.hlsMissingTitle,
+      labels.missing,
+      labels.tokenError,
+    ],
   );
 
   const handleEpisodeSelect = async (targetEpisode) => {
@@ -965,6 +951,7 @@ export default function WatchPage() {
     async function fetchPlayerData() {
       setLoading(true);
       setError("");
+      setPlaybackAlert(null);
       setIsVideoPaused(false);
       setIsSubtitleMenuOpen(false);
       setIsEpisodeMenuOpen(false);
@@ -1005,7 +992,7 @@ export default function WatchPage() {
   }, [seriesId, language, labels.tokenError, loadEpisodeVideo]);
 
   const showPlayer =
-    episode?.video_url && (playAuthToken || playbackUrl) && !error;
+    episode?.video_url && playback?.url && !error;
 
   return (
     <div
@@ -1381,6 +1368,44 @@ export default function WatchPage() {
         </div>
       ) : null}
 
+      {playbackAlert ? (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-[320px] rounded-2xl border border-white/14 bg-[#151019] p-5 text-center text-white shadow-[0_18px_48px_rgba(0,0,0,0.44)]">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-[#F6C35B]/45 bg-[#F6C35B]/14 text-[#F6C35B]">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+              </svg>
+            </div>
+            <h2 className="mt-4 text-[18px] font-semibold leading-6">
+              {playbackAlert.title}
+            </h2>
+            <p className="mt-2 text-[14px] leading-5 text-white/72">
+              {playbackAlert.message}
+            </p>
+            <button
+              type="button"
+              onClick={() => setPlaybackAlert(null)}
+              className="mt-5 h-11 w-full rounded-xl bg-[#7B1ED6] text-[14px] font-semibold text-white active:scale-95"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {loading || isEpisodeLoading ? (
         <div className="flex flex-col items-center justify-center w-full h-full gap-4">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#BF8EFF] border-t-transparent" />
@@ -1388,12 +1413,10 @@ export default function WatchPage() {
         </div>
       ) : showPlayer ? (
         <VePlayerComponent
+          key={playback.url}
           ref={playerControlRef}
           vid={episode.video_url.trim()}
-          playAuthToken={playAuthToken}
-          playbackUrl={playbackUrl}
-          playbackStreamType={playbackStreamType}
-          playDomain={playDomain}
+          playback={playback}
           subtitles={subtitles}
           activeSubtitle={activeSubtitle}
           onPausedChange={setIsVideoPaused}
