@@ -139,7 +139,9 @@ function getCdnSigningParameterName() {
 }
 
 function getCdnSigningRand() {
-  return (process.env.BYTEPLUS_CDN_AUTH_RAND || "0").trim();
+  return (
+    process.env.BYTEPLUS_CDN_AUTH_RAND || crypto.randomBytes(16).toString("hex")
+  ).trim();
 }
 
 function getCdnSigningUid() {
@@ -154,9 +156,7 @@ function signCdnUrl(playbackUrl) {
   const signedUrl = new URL(playbackUrl);
   const signingParameterName = getCdnSigningParameterName();
 
-  if (signedUrl.searchParams.has(signingParameterName)) {
-    return signedUrl.href;
-  }
+  signedUrl.searchParams.delete(signingParameterName);
 
   const timestamp = Math.floor(Date.now() / 1000);
   const rand = getCdnSigningRand();

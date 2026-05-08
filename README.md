@@ -24,4 +24,6 @@ BYTEPLUS_CDN_AUTH_KEY=your_primary_key
 ```
 
 The app signs the master HLS URL with Type A `auth_key`. Keep M3U8 rewrite
-enabled in the BytePlus console so segment URLs inherit signing parameters.
+enabled in the BytePlus console so child playlist and segment URLs inherit
+signing parameters. For multi-audio HLS, also enable rewrite for `EXT-X-MEDIA`;
+enable `EXT-X-MAP` if the transcode output uses fMP4/CMAF init segments.
