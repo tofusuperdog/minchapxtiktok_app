@@ -13,3 +13,15 @@ BYTEPLUS_USE_HLS_PROXY=true
 
 Keep this disabled in production after CORS is configured on the BytePlus play
 domain, because proxying every HLS segment through Next.js is slower.
+
+## BytePlus CDN URL signing
+
+When URL signing is enabled on the BytePlus playback domain, set the primary key
+server-side only:
+
+```env
+BYTEPLUS_CDN_AUTH_KEY=your_primary_key
+```
+
+The app signs the master HLS URL with Type A `auth_key`. Keep M3U8 rewrite
+enabled in the BytePlus console so segment URLs inherit signing parameters.

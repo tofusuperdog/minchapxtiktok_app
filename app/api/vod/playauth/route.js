@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import vod from "@byteplus/vcloud-sdk-nodejs";
 
 export const runtime = "nodejs";
@@ -124,6 +125,56 @@ function getHlsProxyUrl(playbackUrl, origin = "") {
   return `${origin}/api/vod/hls?url=${encodeURIComponent(playbackUrl)}`;
 }
 
+function getCdnSigningKey() {
+  return (
+    process.env.BYTEPLUS_CDN_AUTH_KEY ||
+    process.env.BYTEPLUS_URL_SIGNING_PRIMARY_KEY ||
+    process.env.BYTEPLUS_URL_SIGNING_KEY ||
+    ""
+  ).trim();
+}
+
+function getCdnSigningParameterName() {
+  return (process.env.BYTEPLUS_CDN_AUTH_PARAM || "auth_key").trim();
+}
+
+function getCdnSigningRand() {
+  return (process.env.BYTEPLUS_CDN_AUTH_RAND || "0").trim();
+}
+
+function getCdnSigningUid() {
+  return (process.env.BYTEPLUS_CDN_AUTH_UID || "0").trim();
+}
+
+function signCdnUrl(playbackUrl) {
+  const signingKey = getCdnSigningKey();
+
+  if (!playbackUrl || !signingKey) return playbackUrl;
+
+  const signedUrl = new URL(playbackUrl);
+  const signingParameterName = getCdnSigningParameterName();
+
+  if (signedUrl.searchParams.has(signingParameterName)) {
+    return signedUrl.href;
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const rand = getCdnSigningRand();
+  const uid = getCdnSigningUid();
+  const uri = signedUrl.pathname;
+  const token = crypto
+    .createHash("md5")
+    .update(`${uri}-${timestamp}-${rand}-${uid}-${signingKey}`)
+    .digest("hex");
+
+  signedUrl.searchParams.set(
+    signingParameterName,
+    `${timestamp}-${rand}-${uid}-${token}`,
+  );
+
+  return signedUrl.href;
+}
+
 function shouldUseHlsProxy() {
   return (
     String(
@@ -241,6 +292,8 @@ export async function GET(request) {
       );
     }
 
+    const signedPlaybackUrl = signCdnUrl(defaultPlayback.playbackUrl);
+
     try {
       const subtitleRes = await vodService.GetSubtitleInfoList({
         ...baseParams,
@@ -290,11 +343,11 @@ export async function GET(request) {
       {
         defaultPlaybackSource: defaultPlayback.source,
         preferredPlaybackSource: shouldUseHlsProxy()
-          ? getHlsProxyUrl(defaultPlayback.playbackUrl, request.nextUrl.origin)
-          : defaultPlayback.playbackUrl,
-        directPlaybackSource: defaultPlayback.playbackUrl,
+          ? getHlsProxyUrl(signedPlaybackUrl, request.nextUrl.origin)
+          : signedPlaybackUrl,
+        directPlaybackSource: signedPlaybackUrl,
         proxiedPlaybackSource: getHlsProxyUrl(
-          defaultPlayback.playbackUrl,
+          signedPlaybackUrl,
           request.nextUrl.origin,
         ),
         isHlsProxyEnabled: shouldUseHlsProxy(),
