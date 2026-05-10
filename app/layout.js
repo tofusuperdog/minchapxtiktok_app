@@ -1,6 +1,7 @@
 import { IBM_Plex_Sans_Thai } from "next/font/google";
 import Script from "next/script";
 import "@byteplus/veplayer/index.min.css";
+import AppLayoutClient from "./AppLayoutClient";
 import "./globals.css";
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
@@ -110,7 +111,7 @@ export default function RootLayout({ children }) {
             `,
           }}
         />
-        {children}
+        <AppLayoutClient>{children}</AppLayoutClient>
       </body>
     </html>
   );

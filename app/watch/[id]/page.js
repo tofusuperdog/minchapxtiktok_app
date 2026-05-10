@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useLanguage } from "../../LanguageContext";
 import { useParams, useRouter } from "next/navigation";
-import { SUPABASE_HEADERS, supabaseRestUrl } from "../../../lib/supabase";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../../lib/supabase";
 
 const BYTEPLUS_LICENSE =
   process.env.NEXT_PUBLIC_BYTEPLUS_LICENSE ||
@@ -1357,7 +1357,7 @@ export default function WatchPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push("/app/vip")}
+                  onClick={() => router.push("/vip")}
                   className="h-[48px] rounded-xl bg-gradient-to-br from-[#B653FF] to-[#7C35FF] text-[14px] font-semibold text-white shadow-[0_0_22px_rgba(184,92,255,0.44)] active:scale-95"
                 >
                   สมัคร VIP

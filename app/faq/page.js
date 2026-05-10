@@ -297,7 +297,7 @@ export default function AppFaq() {
               <circle cx="5" cy="12" r="1"></circle>
             </svg>
           </button>
-          <button onClick={() => router.push("/app")} className="p-1">
+          <button onClick={() => router.push("/")} className="p-1">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -391,7 +391,7 @@ export default function AppFaq() {
           </div>
 
           <button
-            onClick={() => router.push("/app/contact")}
+            onClick={() => router.push("/contact")}
             className="shrink-0 rounded-[8px] bg-[linear-gradient(180deg,#B46CFF,#7B2DE2)] px-4 py-2.5 text-[13px] font-extrabold text-white shadow-[0_0_16px_rgba(180,108,255,0.34),inset_0_1px_0_rgba(255,255,255,0.34)]"
           >
             {contactCta.action}

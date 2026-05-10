@@ -3,7 +3,7 @@
 import { useLanguage } from "../LanguageContext";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { SUPABASE_HEADERS, supabaseRestUrl } from "../../lib/supabase";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../lib/supabase";
 
 export default function AppProfile() {
   const { language, t } = useLanguage();
@@ -48,21 +48,21 @@ export default function AppProfile() {
       id: "subscription-history",
       label: t("subscription_history"),
       icon: "/subscription-history.svg",
-      path: "/app/bill",
+      path: "/bill",
     },
-    { id: "faq", label: t("faq"), icon: "/faq.svg", path: "/app/faq" },
-    { id: "terms", label: t("terms"), icon: "/term.svg", path: "/app/terms" },
+    { id: "faq", label: t("faq"), icon: "/faq.svg", path: "/faq" },
+    { id: "terms", label: t("terms"), icon: "/term.svg", path: "/terms" },
     {
       id: "policy",
       label: t("privacy"),
       icon: "/policy.svg",
-      path: "/app/policy",
+      path: "/policy",
     },
     {
       id: "contact",
       label: t("contact"),
       icon: "/contact.svg",
-      path: "/app/contact",
+      path: "/contact",
     },
   ];
 
@@ -120,7 +120,7 @@ export default function AppProfile() {
                   {t("unlimited_watch")}
                 </p>
                 <Link
-                  href="/app/vip"
+                  href="/vip"
                   className={`mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-[#B24BFF] to-[#7800D7] px-5 font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_0_20px_rgba(143,42,255,0.38)] transition-transform active:scale-[0.98] ${
                     language === "EN"
                       ? "max-w-[180px] text-[15px]"

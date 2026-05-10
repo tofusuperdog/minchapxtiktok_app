@@ -4,33 +4,33 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LanguageProvider, useLanguage } from "./LanguageContext";
 import { useState, useRef } from "react";
-import MagicTrail from "../MagicTrail";
+import MagicTrail from "./MagicTrail";
 import { useClickOutside } from "./hooks/useClickOutside";
 
 const LANGUAGES = ["TH", "EN", "JP", "CN"];
 const HEADER_HIDDEN_PATHS = new Set([
-  "/app/vip",
-  "/app/contact",
-  "/app/policy",
-  "/app/terms",
-  "/app/faq",
-  "/app/topup",
-  "/app/bill",
+  "/vip",
+  "/contact",
+  "/policy",
+  "/terms",
+  "/faq",
+  "/topup",
+  "/bill",
 ]);
 const PROFILE_SECTION_PATHS = new Set([
-  "/app/profile",
-  "/app/bill",
-  "/app/faq",
-  "/app/terms",
-  "/app/policy",
-  "/app/contact",
+  "/profile",
+  "/bill",
+  "/faq",
+  "/terms",
+  "/policy",
+  "/contact",
 ]);
 
 function isDetailPage(pathname) {
   return (
-    pathname.startsWith("/app/watch/") ||
-    pathname.startsWith("/app/category/") ||
-    pathname.startsWith("/app/genre/")
+    pathname.startsWith("/watch/") ||
+    pathname.startsWith("/category/") ||
+    pathname.startsWith("/genre/")
   );
 }
 
@@ -77,17 +77,17 @@ function LayoutContent({ children }) {
   useClickOutside(dropdownRef, () => setIsDropdownOpen(false));
 
   const navItems = [
-    { path: "/app", label: t("home"), icon: "/home.svg", iconActive: "/home_selected.svg" },
-    { path: "/app/myseries", label: t("myseries"), icon: "/myseries.svg", iconActive: "/myseries_selected.svg" },
-    { path: "/app/search", label: t("search"), icon: "/search.svg", iconActive: "/search_selected.svg" },
-    { path: "/app/profile", label: t("profile"), icon: "/profile.svg", iconActive: "/profile_selected.svg" },
+    { path: "/", label: t("home"), icon: "/home.svg", iconActive: "/home_selected.svg" },
+    { path: "/myseries", label: t("myseries"), icon: "/myseries.svg", iconActive: "/myseries_selected.svg" },
+    { path: "/search", label: t("search"), icon: "/search.svg", iconActive: "/search_selected.svg" },
+    { path: "/profile", label: t("profile"), icon: "/profile.svg", iconActive: "/profile_selected.svg" },
   ];
 
-  const isTopupPage = pathname === "/app/topup";
-  const isWatchPage = pathname.startsWith("/app/watch/");
-  const isCategoryPage = pathname.startsWith("/app/category/");
-  const isGenrePage = pathname.startsWith("/app/genre/");
-  const isVipPage = pathname === "/app/vip";
+  const isTopupPage = pathname === "/topup";
+  const isWatchPage = pathname.startsWith("/watch/");
+  const isCategoryPage = pathname.startsWith("/category/");
+  const isGenrePage = pathname.startsWith("/genre/");
+  const isVipPage = pathname === "/vip";
   const isProfileSectionPage = PROFILE_SECTION_PATHS.has(pathname);
   const showHeader = !HEADER_HIDDEN_PATHS.has(pathname) && !isDetailPage(pathname);
 
@@ -167,7 +167,7 @@ function LayoutContent({ children }) {
             {navItems.map((item) => {
               const isActive =
                 pathname === item.path ||
-                (item.path === "/app/profile" && isProfileSectionPage);
+                (item.path === "/profile" && isProfileSectionPage);
               return (
                 <Link
                   key={item.path}

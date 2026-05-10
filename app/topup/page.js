@@ -4,7 +4,7 @@ import { useLanguage } from "../LanguageContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { SUPABASE_HEADERS, supabaseRestUrl } from "../../lib/supabase";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../lib/supabase";
 import { useClickOutside } from "../hooks/useClickOutside";
 
 export default function TopupPage() {
@@ -147,7 +147,7 @@ export default function TopupPage() {
           <button className="flex items-center justify-center h-8 w-8 rounded text-white/90">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
           </button>
-          <button onClick={() => router.push("/app")} className="p-1">
+          <button onClick={() => router.push("/")} className="p-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>

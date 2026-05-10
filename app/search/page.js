@@ -3,7 +3,7 @@
 import { useLanguage } from "../LanguageContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { SUPABASE_HEADERS, supabaseRestUrl } from "../../lib/supabase";
+import { SUPABASE_HEADERS, supabaseRestUrl } from "../lib/supabase";
 
 const headers = SUPABASE_HEADERS;
 
@@ -138,7 +138,7 @@ export default function AppSearch() {
   const isSearching = query.trim().length > 0;
 
   const openPlayer = (seriesId) => {
-    if (seriesId) router.push(`/app/watch/${seriesId}`);
+    if (seriesId) router.push(`/watch/${seriesId}`);
   };
 
   return (

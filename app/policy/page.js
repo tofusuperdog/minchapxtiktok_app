@@ -410,7 +410,7 @@ export default function AppPolicy() {
               <circle cx="5" cy="12" r="1"></circle>
             </svg>
           </button>
-          <button onClick={() => router.push("/app")} className="p-1">
+          <button onClick={() => router.push("/")} className="p-1">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"

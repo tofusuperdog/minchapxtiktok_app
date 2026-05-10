@@ -351,7 +351,7 @@ export default function BillPage() {
             </svg>
           </button>
 
-          <button onClick={() => router.push("/app")} className="p-1">
+          <button onClick={() => router.push("/")} className="p-1">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
